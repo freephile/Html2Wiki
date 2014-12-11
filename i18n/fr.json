@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"Greg Rundlett"
+		]
+	},
+	"html2wiki-desc": "Cette extension vous permet d'importer HTML dans votre wiki . Elle se appuie sur le service Parsoid",
+	"html2wiki-i18n-welcome": "Bienvenue dans le fichier de localisation de l'extension Html2Wiki."
+}
