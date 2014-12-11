@@ -1,0 +1,17 @@
+This extension to MediaWiki is used to import HTML content into the wiki.
+
+It requires the Parsoid extension, and relies on that to transform an HTML DOM
+into wikitext.
+
+User nominates upload of file via upload form similar to upload image
+User also specifies the "collection" name of where this source is coming from (e.g. The URL or website)
+Later, this will need to handle zip uploads
+
+Form file content is saved to server (tmp), and that triggers conversion attempt.
+A Title is proposed from text (checked in the db), and user can override naming
+HTML is converted to wiki text for the content of the article.
+Image references are extracted from source, and user is allowed to nominate which images will be migrated into the wiki
+For each of those images, the image asset is retrieved, uploaded with automatic file naming based on the "prefix" + src attribute.
+Also, each image is tagged with the collection name for easier identification
+Once all the images are contained in the wiki, the wiki markup for the article can be updated to reference those images.
+(eliminate duplicate images based on checksum?)
