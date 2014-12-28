@@ -3,5 +3,7 @@
 		"authors": []
 	},
 	"html2wiki-desc": "Import HTML into your wiki.  Requires the Parsoid service.",
-	"html2wiki-i18n-welcome": "Welcome to the localization file of the Html2Wiki extension."
+	"html2wiki-i18n-welcome": "Welcome to the localization file of the Html2Wiki extension.",
+        "html2wiki-intro": "Use this form to import HTML content into your wiki",
+        "html2wiki-title": "HTML Import"
 }
