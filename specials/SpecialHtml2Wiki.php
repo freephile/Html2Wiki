@@ -10,9 +10,13 @@
 
 class SpecialHtml2Wiki extends SpecialPage {
     /**
-     * Right now we'll just construct with the name of the page
+	 * Constructor : initialise object
+	 * Get data POSTed through the form and assign them to the object
+	 * @param WebRequest $request Data posted.
+	 * We'll use the parent's constructor to instantiate the name but not perms
      */
-    public function __construct($name='Html2Wiki') {
+    public function __construct($request = null) {
+		$name='Html2Wiki';
         parent::__construct($name); 
         // we might want to add rights here, or else do it in a method called in exectute
         //parent::__construct('Import Html', array('upload', 'reupload');
