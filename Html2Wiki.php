@@ -28,12 +28,12 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  * http://www.gnu.org/copyleft/gpl.html
- * 
+ *
  * @file
  */
 
 if ( !defined( 'MEDIAWIKI' ) ) {
-	echo <<<EOT 
+    echo <<<EOT
 This file is an extension to the MediaWiki software and cannot be used on its own.
 
 To install this extension, put the following line in LocalSettings.php:
@@ -43,7 +43,7 @@ EOT;
 	die( 1 );
 }
 
-/** 
+/**
  * Add in a version compatibility check
  * I'm unsure what version we will require, but this is how you do it
  */
@@ -76,7 +76,7 @@ $wgExtensionMessagesFiles['Html2WikiAlias'] = __DIR__ . '/Html2Wiki.i18n.alias.p
 
 // Register special pages
 $wgSpecialPages['Html2Wiki'] = 'SpecialHtml2Wiki'; // the name of the subclass
-// Set the group for our Special Page(s) 
+// Set the group for our Special Page(s)
 // deprecated but still works See getGroupName()
 // $wgSpecialPageGroups['Html2Wiki'] = 'media';
 
