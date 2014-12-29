@@ -1,6 +1,7 @@
 <?php
 /**
- * Aliases for special pages of the Html2Wiki extension
+ * Aliases for special pages of the Html2Wiki extension.  This file defines
+ * how the special page will be addressed in other languages
  * 
  * When your special page code uses either 
  * SpecialPage::getTitleFor( 'MyExtension' ) or $this->getTitle() 
@@ -13,7 +14,9 @@
 
 $specialPageAliases = array();
 
-/** English (English) */
+/** English (English) 
+ * @author freephile
+ */
 $specialPageAliases['en'] = array(
-	'Html2Wiki' => array( 'Html2Wiki' ),
+	'Html2Wiki' => array('Html2Wiki', 'Html2Wiki'),
 );
