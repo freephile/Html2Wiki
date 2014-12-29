@@ -2,16 +2,32 @@
 /**
  * Html2Wiki extension - enables you to import HTML content into your wiki.
  *
- * For more info see http://mediawiki.org/wiki/Extension:Html2Wiki (when available)
+ * @link http://mediawiki.org/wiki/Extension:Html2Wiki For more info 
+ * (when available)
  *
  * @file
  * @ingroup Extensions
- * @author Greg Rundlett
+ * @author Greg Rundlett @link http://eQuality-Tech.com eQuality Technology
  * @license GNU General Public Licence 2.0 or later
- * @todo publish the extension upstream. first with the http://www.mediawiki.org/wiki/Template:Extension
+ * @todo publish the extension upstream. first with the @link http://www.mediawiki.org/wiki/Template:Extension
  *
  * This file is part of the Html2Wiki Extension to MediaWiki
- * https://www.mediawiki.org/wiki/Extension:Html2Wiki
+ * @link https://www.mediawiki.org/wiki/Extension:Html2Wiki
+ * 
+ * This is the setup file
+ * This file will need to accomplish a number of tasks including
+ * * register any media handler, parser function, special page, custom XML tag, 
+ * and variable used by your extension.
+ * * define and/or validate any configuration variables you have defined for 
+ * your extension.
+ * * prepare the classes used by your extension for autoloading
+ * * determine what parts of your setup should be done immediately and what 
+ * needs to be deferred until the MediaWiki core has been initialized and 
+ * configured
+ * * define any additional hooks needed by your extension
+ * * create or check any new database tables required by your extension.
+ * * setup localisation for your extension
+ * @link https://www.mediawiki.org/wiki/Manual:Developing_extensions
  *
  * @section LICENSE
  * This program is free software; you can redistribute it and/or modify
@@ -58,8 +74,9 @@ $wgExtensionCredits['other'][] = array(
 		'Greg Rundlett',
 	),
 	'version'  => '0.1.0',
-	// 'url' => 'https://www.mediawiki.org/wiki/Extension:Html2Wiki',
+	'url' => 'https://www.mediawiki.org/wiki/Extension:Html2Wiki',
 	'descriptionmsg' => 'html2wiki-desc',
+	'license-name' => 'GPL-2.0+', // GNU General Public License v2.0 or later
 );
 
 /* Setup */
@@ -97,6 +114,8 @@ $wgResourceModules['ext.Html2Wiki.foo'] = array(
 	'remoteExtPath' => 'examples/Html2Wiki',
 );
 
+/* Logging */
+$wgLogTypes[] = 'html2wiki';
 
 /* Configuration */
 

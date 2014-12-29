@@ -9,5 +9,7 @@
 	"html2wiki-summary": "Description appearing on top of [[Special:Html2Wiki]].",
 	"html2wiki-i18n-welcome": "Welcome to the localization file of the Html2Wiki extension.",
     "html2wiki-intro": "more content at the top of [[Special:Html2Wiki]].",
-    "html2wiki-title": "HTML Import"
+    "html2wiki-title": "HTML Import",
+	"log-name-html2wiki": "for the Special:Log log name that appears in the drop-down on the Special:Log page",
+	"log-description-html2wiki": "for the Special:Log description that appears on the Special:Log page when you filter logs on this specific log name",
 }
