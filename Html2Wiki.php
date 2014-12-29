@@ -33,7 +33,13 @@
  */
 
 if ( !defined( 'MEDIAWIKI' ) ) {
-	echo( "This file is an extension to the MediaWiki software and cannot be used on its own.\n" );
+	echo <<<EOT 
+This file is an extension to the MediaWiki software and cannot be used on its own.
+
+To install this extension, put the following line in LocalSettings.php:
+require_once( "\$IP/extensions/Html2Wiki/Html2Wiki.php" );
+
+EOT;
 	die( 1 );
 }
 
@@ -70,14 +76,9 @@ $wgExtensionMessagesFiles['Html2WikiAlias'] = __DIR__ . '/Html2Wiki.i18n.alias.p
 
 // Register special pages
 $wgSpecialPages['Html2Wiki'] = 'SpecialHtml2Wiki'; // the name of the subclass
-// deprecated but still works
-$wgSpecialPageGroups['Html2Wiki'] = 'media'; // the place you want to show it
-/*
- * new way
- function getGroupName() {
-    return 'specialpages-group-media'; #'Media reports and uploads';
-}
- */
+// Set the group for our Special Page(s) 
+// deprecated but still works See getGroupName()
+// $wgSpecialPageGroups['Html2Wiki'] = 'media';
 
 // Register modules
 $wgResourceModules['ext.Html2Wiki.foo'] = array(
