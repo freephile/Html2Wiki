@@ -5,9 +5,11 @@
 		]
 	},
 	"html2wiki": "Import HTML content",
-	"html2wiki-desc": "Import HTML into your wiki.  Requires the Parsoid service.",
-	"html2wiki-summary": "Description appearing on top of [[Special:Html2Wiki]].",
+	"html2wiki-desc": "Import HTML content into your wiki",
+	"html2wiki-summary": "Description appearing on top of [[Special:Html2Wiki]] - but it's not.",
 	"html2wiki-i18n-welcome": "Welcome to the localization file of the Html2Wiki extension.",
     "html2wiki-intro": "Use this form to import HTML content into your wiki",
-    "html2wiki-title": "HTML Import"
+    "html2wiki-title": "HTML Import",
+	"log-name-html2wiki": "HTML Import log",
+	"log-description-html2wiki": "The history of HTML imports",
 }
