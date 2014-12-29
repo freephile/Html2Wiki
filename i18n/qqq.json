@@ -4,10 +4,10 @@
 			"freephile"
 		]
 	},
-	"html2wiki": "Import HTML content",
-	"html2wiki-desc": "Import HTML into your wiki.  Requires the Parsoid service.",
+	"html2wiki": "The name of the extension's entry in Special:SpecialPages",
+	"html2wiki-desc": "{{desc}}",
 	"html2wiki-summary": "Description appearing on top of [[Special:Html2Wiki]].",
 	"html2wiki-i18n-welcome": "Welcome to the localization file of the Html2Wiki extension.",
-    "html2wiki-intro": "Use this form to import HTML content into your wiki",
+    "html2wiki-intro": "more content at the top of [[Special:Html2Wiki]].",
     "html2wiki-title": "HTML Import"
 }
