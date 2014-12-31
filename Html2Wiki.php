@@ -82,11 +82,12 @@ $wgExtensionCredits['other'][] = array(
 /* Setup */
 
 // Register files
-$wgAutoloadClasses['Html2WikiHooks'] = __DIR__ . '/Html2Wiki.hooks.php';
-$wgAutoloadClasses['SpecialHtml2Wiki'] = __DIR__ . '/specials/SpecialHtml2Wiki.php';
+$dir = __DIR__;
+$wgAutoloadClasses['Html2WikiHooks'] = "$dir/Html2Wiki.hooks.php";
+$wgAutoloadClasses['SpecialHtml2Wiki'] = "$dir/specials/SpecialHtml2Wiki.php";
 
-$wgMessagesDirs['Html2Wiki'] = __DIR__ . '/i18n';
-$wgExtensionMessagesFiles['Html2WikiAlias'] = __DIR__ . '/Html2Wiki.i18n.alias.php';
+$wgMessagesDirs['Html2Wiki'] = "$dir/i18n";
+$wgExtensionMessagesFiles['Html2WikiAlias'] = "$dir/Html2Wiki.i18n.alias.php";
 
 // Register hooks
 #$wgHooks['NameOfHook'][] = 'Html2WikiHooks::onNameOfHook';
@@ -115,6 +116,8 @@ $wgResourceModules['ext.Html2Wiki.foo'] = array(
 );
 
 /* Logging */
+// By adding to wgLogTypes, we get an entry in the dropdown on Special:Log
+// Several keys in the i18n file are used to provide messages
 $wgLogTypes[] = 'html2wiki';
 
 /* Configuration */
