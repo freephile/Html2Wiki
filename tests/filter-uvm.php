@@ -11,6 +11,10 @@
  * regex based solutions like <TAG\b[^>]*>(.*?)</TAG>, we need a solution that
  * incorporates an actual HTML parser.
  * 
+ * Unfortunately, the libxml based PHP DOMDocument
+ * @link http://docs.php.net/manual/en/domdocument.loadhtml.php PHP DOMDocument 
+ * fails to parse even our first test due to improperly nested <DIV> tags
+ * 
  * @link http://htmlpurifier.org/comparison HTMLPurifier 
  * is that solution.
  * 
@@ -21,7 +25,18 @@
 $filename = "uvm-1.1d-docs-html-files-overviews-intro-txt.html";
 $raw = file_get_contents(__DIR__ . "/$filename");
 
+/**
+ * Use HTML Purifier
+ */
+require_once __DIR__ . "/../lib/htmlpurifier/library/HTMLPurifier.auto.php";
 
+$purifier = new HTMLPurifier();
+$clean_html = $purifier->purify($raw);
+echo $clean_html;
+// @link http://bit.ly/1vrlTVl
+
+
+/*
 // The regex approach fails on a simple test.  
 // It strips the closing </body></html> tags when it shouldn't
 // a pattern to remove <script> tags
@@ -33,8 +48,10 @@ $reScript = "#<script\b[^>]*>(.*?)</script>#ius"; // lazy dot-all
 // As the documentation points out, you should handle the many errors and warnings
 // this tool will generate.
 $doc = new DOMDocument();
-// suppress the frailty of libxml
+// We get PHP Warning:  DOMDocument::loadHTML(): Unexpected end tag : div in Entity, line: 64
+// We can suppress the frailty of libxml before loading the HTML
 libxml_use_internal_errors(true);
+// however, this just moves the error downstream.
 $doc->loadHTML($raw);
 $scriptTags = $doc->getElementsByTagName('script');
 $length = $scriptTags->length;
@@ -45,5 +62,5 @@ for ($i = 0; $i < $length; $i++) {
 // get the HTML string back
 $html = $doc->saveHTML();
 echo $html;
-
+*/
 
