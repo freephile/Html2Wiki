@@ -10,6 +10,10 @@
 	"html2wiki-i18n-welcome": "Welcome to the localization file of the Html2Wiki extension.",
     "html2wiki-intro": "more content at the top of [[Special:Html2Wiki]].",
     "html2wiki-title": "HTML Import",
+	"import-html-fieldset-legend": "The legend of the primary fieldset in Special:Html2Wiki",
+	"import-html-text": "Instructions on how to import HTML",
+	"import-html-filename": "The label for the file input element",
+	"import-html-not-allowed": "An error message for users without permission to import HTML",
 	"log-name-html2wiki": "for the Special:Log log name that appears in the drop-down on the Special:Log page",
-	"log-description-html2wiki": "for the Special:Log description that appears on the Special:Log page when you filter logs on this specific log name",
+	"log-description-html2wiki": "for the Special:Log description that appears on the Special:Log page when you filter logs on this specific log name"
 }

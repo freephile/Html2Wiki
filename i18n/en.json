@@ -10,6 +10,10 @@
 	"html2wiki-i18n-welcome": "Welcome to the localization file of the Html2Wiki extension.",
     "html2wiki-intro": "Use this form to import HTML content into your wiki",
     "html2wiki-title": "HTML Import",
+	"import-html-fieldset-legend": "Import HTML content",
+	"import-html-text": "Nominate your HTML source content. Future versions may allow for importing directly via URL.  Currently, you must have saved HTML locally on your computer",
+	"import-html-filename": "Filename:",
+	"import-html-not-allowed": "Sorry, you must be an Admin, or have import privileges to use this form.",
 	"log-name-html2wiki": "HTML Import log",
-	"log-description-html2wiki": "The history of HTML imports",
+	"log-description-html2wiki": "Below is a list of the most recent HTML imports"
 }

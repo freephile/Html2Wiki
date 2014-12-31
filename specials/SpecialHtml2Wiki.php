@@ -39,7 +39,15 @@ class SpecialHtml2Wiki extends SpecialPage {
      *  [[Special:HelloWorld/subpage]].
      */
     public function execute($sub) {
-
+		/**
+		 * @since 1.23 we can create our own Config object
+		 * @link https://www.mediawiki.org/wiki/Manual:Configuration_for_developers
+		 
+		$wgConfigRegistry['html2wiki'] = 'GlobalVarConfig::newInstance';
+		// Now, whenever you want your config object
+		// $conf = ConfigFactory::getDefaultInstance()->makeConfig( 'html2wiki' );
+		*/
+		
         $out = $this->getOutput();
 
         $out->setPageTitle($this->msg('html2wiki-title'));
@@ -91,8 +99,22 @@ class SpecialHtml2Wiki extends SpecialPage {
 
 	/**
 	 * Do the actual import
+     * 
 	 */
-	private function doImport() {
+    private function doImport() {
+        // We'll need to send the form input to parse.js
+        // and the response/output will be wikitext.
+        // We'll either be able to insert that programmatically
+        // or use OutputPage->addWikiText() to make it appear in the page output for initial testing
+    }
+    
+    
+    /**
+     * The code below is actually from Special:Import as an example
+     * @return type
+     * @throws PermissionsError
+     */
+	private function doSpecialImport() {
 		$isUpload = false;
 		$request = $this->getRequest();
 		$this->namespace = $request->getIntOrNull( 'namespace' );
@@ -212,8 +234,69 @@ class SpecialHtml2Wiki extends SpecialPage {
 			$out->addHTML( '<hr />' );
 		}
 	}
-	
+
 	private function showForm() {
+		$action = $this->getPageTitle()->getLocalURL( array( 'action' => 'submit' ) );
+		$user = $this->getUser();
+		$out = $this->getOutput();
+		$importSources = $this->getConfig()->get( 'ImportSources' );
+		
+		// $out->addHTML( "<h2>HTML converter</h2>" );
+		
+		if ( $user->isAllowed( 'importupload' ) ) {
+			$out->addHTML(
+				Xml::fieldset( $this->msg( 'import-html-fieldset-legend' )->text() ) . 
+					Xml::openElement(
+						'form',
+						array(
+							'enctype' => 'multipart/form-data',
+							'method' => 'post',
+							'action' => $action,
+							'id' => 'mw-import-html-form'           // new id
+						)
+					) .
+					$this->msg( 'import-html-text' )->parseAsBlock() . 
+					Html::hidden( 'action', 'submit' ) .
+					Html::hidden( 'source', 'upload' ) .
+					Xml::openElement( 'table', array( 'id' => 'mw-import-table-html' ) ) . // new id
+					"<tr>
+					<td class='mw-label'>" .
+					Xml::label( $this->msg( 'import-html-filename' )->text(), 'htmlimport' ) . 
+					"</td>
+					<td class='mw-input'>" .
+					Html::input( 'htmlimport', '', 'file', array( 'id' => 'htmlimport' ) ) . ' ' .
+					"</td>
+				</tr>
+				<tr>
+					<td class='mw-label'>" .
+					Xml::label( $this->msg( 'import-comment' )->text(), 'mw-import-comment' ) .
+					"</td>
+					<td class='mw-input'>" .
+					Xml::input( 'log-comment', 50,
+						( $this->sourceName == 'upload' ? $this->logcomment : '' ),
+						array( 'id' => 'mw-import-comment', 'type' => 'text' ) ) . ' ' .
+					"</td>
+				</tr>
+				<tr>
+					<td></td>
+					<td class='mw-submit'>" .
+					Xml::submitButton( $this->msg( 'uploadbtn' )->text() ) .
+					"</td>
+				</tr>" .
+					Xml::closeElement( 'table' ) .
+					Html::hidden( 'editToken', $user->getEditToken() ) .
+					Xml::closeElement( 'form' ) .
+					Xml::closeElement( 'fieldset' )
+			);
+		} else {
+			$out->addWikiMsg( 'import-html-not-allowed' );
+		}
+		
+	}
+	/**
+	 * The code below is from the SpecialImport.php file
+	 */
+	private function showSpecialImportForm() {
 		$action = $this->getPageTitle()->getLocalURL( array( 'action' => 'submit' ) );
 		$user = $this->getUser();
 		$out = $this->getOutput();
