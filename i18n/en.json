@@ -9,7 +9,7 @@
 	"html2wiki-summary": "Description appearing on top of [[Special:Html2Wiki]] - but it's not.",
 	"html2wiki-i18n-welcome": "Welcome to the localization file of the Html2Wiki extension.",
     "html2wiki-intro": "Use this form to import HTML content into your wiki",
-    "html2wiki-title": "HTML Import",
+    "html2wiki-title": "Import HTML",
 	"import-html-fieldset-legend": "Import HTML content",
 	"import-html-text": "Nominate your HTML source content. Future versions may allow for importing directly via URL.  Currently, you must have saved HTML locally on your computer",
 	"import-html-filename": "Filename:",
