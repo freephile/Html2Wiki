@@ -9,6 +9,108 @@
  */
 
 class SpecialHtml2Wiki extends SpecialPage {
+    
+	/** @var string The HTML we want to turn into wiki text **/
+    public $mContent;
+
+    /** @todo review and cull the properties that we use here
+     * These properties were copied from Special:Upload assuming they'd be 
+     * applicable to our use case.
+     */
+	/** @var WebRequest|FauxRequest The request this form is supposed to handle */
+	public $mRequest;
+	public $mSourceType;
+
+	/** @var UploadBase */
+	public $mUpload;
+
+	/** @var LocalFile */
+	public $mLocalFile;
+	public $mUploadClicked;
+
+	/** User input variables from the "description" section **/
+
+	/** @var string The requested target file name */
+	public $mDesiredDestName;
+	public $mComment;
+	public $mLicense; // don't know if we'll bother with this
+
+	/** User input variables from the root section **/
+
+	public $mIgnoreWarning;
+	public $mWatchthis;
+	public $mCopyrightStatus;
+	public $mCopyrightSource;
+
+	/** Hidden variables **/
+
+	public $mDestWarningAck;
+
+	/** @var bool The user followed an "overwrite this file" link */
+	public $mForReUpload;
+
+	/** @var bool The user clicked "Cancel and return to upload form" button */
+	public $mCancelUpload;
+	public $mTokenOk;
+
+	/** @var bool Subclasses can use this to determine whether a file was uploaded */
+	public $mUploadSuccessful = false;
+
+	/** Text injection points for hooks not using HTMLForm **/
+	public $uploadFormTextTop;
+	public $uploadFormTextAfterSummary;
+
+	/**
+	 * Initialize instance variables from request and create an Upload handler
+     * @todo review and cull the methods that we use here
+     * This method was copied from Special:Upload assuming it would be 
+     * applicable to our use case.
+	 */
+	protected function loadRequest() {
+		$this->mRequest = $request = $this->getRequest();
+		$this->mSourceType = $request->getVal( 'wpSourceType', 'file' );
+        // @todo What can we use besides UploadBase because we don't want to store file types: HTML and zip?
+        // 
+		$this->mUpload = UploadBase::createFromRequest( $request );
+		$this->mUploadClicked = $request->wasPosted()
+			&& ( $request->getCheck( 'wpUpload' )
+				|| $request->getCheck( 'wpUploadIgnoreWarning' ) );
+
+		// Guess the desired name from the filename if not provided
+		$this->mDesiredDestName = $request->getText( 'wpDestFile' );
+		if ( !$this->mDesiredDestName && $request->getFileName( 'wpUploadFile' ) !== null ) {
+			$this->mDesiredDestName = $request->getFileName( 'wpUploadFile' );
+		}
+		$this->mLicense = $request->getText( 'wpLicense' );
+
+		$this->mDestWarningAck = $request->getText( 'wpDestFileWarningAck' );
+		$this->mIgnoreWarning = $request->getCheck( 'wpIgnoreWarning' )
+			|| $request->getCheck( 'wpUploadIgnoreWarning' );
+		$this->mWatchthis = $request->getBool( 'wpWatchthis' ) && $this->getUser()->isLoggedIn();
+		$this->mCopyrightStatus = $request->getText( 'wpUploadCopyStatus' );
+		$this->mCopyrightSource = $request->getText( 'wpUploadSource' );
+
+		$this->mForReUpload = $request->getBool( 'wpForReUpload' ); // updating a file
+
+		$commentDefault = '';
+		$commentMsg = wfMessage( 'upload-default-description' )->inContentLanguage();
+		if ( !$this->mForReUpload && !$commentMsg->isDisabled() ) {
+			$commentDefault = $commentMsg->plain();
+		}
+		$this->mComment = $request->getText( 'wpUploadDescription', $commentDefault );
+
+		$this->mCancelUpload = $request->getCheck( 'wpCancelUpload' )
+			|| $request->getCheck( 'wpReUpload' ); // b/w compat
+
+		// If it was posted check for the token (no remote POST'ing with user credentials)
+		$token = $request->getVal( 'wpEditToken' );
+		$this->mTokenOk = $this->getUser()->matchEditToken( $token );
+
+		$this->uploadFormTextTop = '';
+		$this->uploadFormTextAfterSummary = '';
+	}
+
+    
     /**
 	 * Constructor : initialise object
 	 * Get data POSTed through the form and assign them to the object
@@ -51,8 +153,6 @@ class SpecialHtml2Wiki extends SpecialPage {
         $out = $this->getOutput();
 
         $out->setPageTitle($this->msg('html2wiki-title'));
-
-        $out->addWikiMsg('html2wiki-intro');
 		
 		/**
 		 * Restrict access to the importing of content.
@@ -88,12 +188,13 @@ class SpecialHtml2Wiki extends SpecialPage {
 		}
 		// from parent, throw an error if the wiki is in read-only mode
 		$this->checkReadOnly();
-
+        // not sure we need all the fandango of loadRequest();  I think we can just simply do parent::getRequest();
 		$request = $this->getRequest();
 		if ( $request->wasPosted() && $request->getVal( 'action' ) == 'submit' ) {
 			$this->doImport();
-		}
+		} else {
 		$this->showForm();
+        }
 
     }
 
@@ -102,10 +203,109 @@ class SpecialHtml2Wiki extends SpecialPage {
      * 
 	 */
     private function doImport() {
+        
+        global $wgMaxUploadSize;
+        
         // We'll need to send the form input to parse.js
         // and the response/output will be wikitext.
         // We'll either be able to insert that programmatically
         // or use OutputPage->addWikiText() to make it appear in the page output for initial testing
+        
+        // check whether we should use Tidy. 
+        $config = $this->getConfig();
+        if ( ( $config->get( 'UseTidy' ) && $options->getTidy() ) || $config->get( 'AlwaysUseTidy' ) ) {
+            // $tmp = MWTidy::tidy( $tmp );
+        }
+        $_MaxUploadSize = $config->get('MaxUploadSize');
+        
+        /* For some tags, we might have to "trick" Tidy into not stripping them, like in MWTidy.php
+        // Modify inline Microdata <link> and <meta> elements so they say <html-link> and <html-meta> so
+		// we can trick Tidy into not stripping them out by including them in tidy's new-empty-tags config
+		$wrappedtext = preg_replace( '!<(link|meta)([^>]*?)(/{0,1}>)!', '<html-$1$2$3', $wrappedtext );
+
+		// Wrap the whole thing in a doctype and body for Tidy.
+		$wrappedtext = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"' .
+			' "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html>' .
+			'<head><title>test</title></head><body>' . $wrappedtext . '</body></html>';
+        */
+        
+        
+        try {
+            // Undefined | Multiple Files | $_FILES Corruption Attack
+            // If this request falls under any of them, treat it invalid.
+            if (
+                !isset($_FILES['userfile']['error']) ||
+                is_array($_FILES['userfile']['error'])
+            ) {
+                throw new RuntimeException('Invalid parameters.');
+            }
+            // Check $_FILES['userfile']['error'] value.
+            switch ($_FILES['userfile']['error']) {
+                case UPLOAD_ERR_OK:
+                    break;
+                case UPLOAD_ERR_NO_FILE:
+                    throw new RuntimeException('No file sent.');
+                case UPLOAD_ERR_INI_SIZE:
+                case UPLOAD_ERR_FORM_SIZE:
+                    throw new RuntimeException('Exceeded filesize limit.');
+                default:
+                    throw new RuntimeException('Unknown errors.');
+            }
+            // You should also check filesize here. 
+            if ($_FILES['userfile']['size'] > $_MaxUploadSize['*']) {
+                throw new RuntimeException('Exceeded filesize limit defined as ' . $_MaxUploadSize['*'] . '.');
+            }
+            /*
+            // DO NOT TRUST $_FILES['userfile']['mime'] VALUE !!
+            // Check MIME Type by yourself.
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            if (false === $ext = array_search(
+                $finfo->file($_FILES['userfile']['tmp_name']),
+                array(
+                    'text/html',
+                    'js'
+                ),
+                true
+            )) {
+                throw new RuntimeException('Invalid file format.');
+            }
+            */
+            // You should name it uniquely.
+            // DO NOT USE $_FILES['userfile']['name'] WITHOUT ANY VALIDATION !!
+            // On this example, obtain safe unique name from its binary data.
+            /* We don't even need to move the file.  We WANT the upload to be discarded
+             * and it will be after upload if we don't move it from the tmp_name
+             * So, we can process it, and only use the result, while PHP destroys
+             * the original source
+             * 
+            if (!move_uploaded_file(
+                $_FILES['userfile']['tmp_name'],
+                sprintf('./uploads/%s.%s',
+                    sha1_file($_FILES['userfile']['tmp_name']),
+                    $ext
+                )
+            )) {
+                throw new RuntimeException('Failed to move uploaded file.');
+            }
+            */
+            if (!is_uploaded_file($_FILES['userfile']['tmp_name'])) {
+                throw new RuntimeException('Possible file upload attack.');
+            }
+        } catch (RuntimeException $e) {
+            echo $e->getMessage();
+        }
+        $out = $this->getOutput();
+        // $out->addHTML('<pre>' . print_r($_FILES) . '</pre>');
+        $out->addHTML('<div>' . $_FILES['userfile']['name'] . ' was uploaded successfully.</div>');
+        $out->addHTML('<div>Original File Contents:</div>');
+        $string = file_get_contents($_FILES['userfile']['tmp_name']);
+        $this->mContent = $string;
+        $this->tidyup();
+        // $_escapedContents = nl2br(htmlentities($string, ENT_QUOTES | ENT_IGNORE, "UTF-8"));
+        // $out->addHTML(<div>$_escapedContents</div>);
+        $out->addWikiText('<source lang="html4strict">' . $this->mContent . '</source>');
+
+        return true;
     }
     
     
@@ -234,18 +434,29 @@ class SpecialHtml2Wiki extends SpecialPage {
 			$out->addHTML( '<hr />' );
 		}
 	}
-
-	private function showForm() {
+    
+    /**
+     * We don't have to worry about access restrictions here, because the whole
+     * SpecialPage is restricted to users with "import" privs.
+     * @var string $message is an optional error message that gets displayed 
+     * on form re-display
+     * 
+     */
+	private function showForm( $message=null ) {
 		$action = $this->getPageTitle()->getLocalURL( array( 'action' => 'submit' ) );
 		$user = $this->getUser();
 		$out = $this->getOutput();
+        $out->addWikiMsg('html2wiki-intro');
 		$importSources = $this->getConfig()->get( 'ImportSources' );
 		
-		// $out->addHTML( "<h2>HTML converter</h2>" );
-		
+        // display an error message if any
+        if ($message) {
+            $out->addHTML('<div class="error">' . $message . "</div>\n");
+        }
+        
 		if ( $user->isAllowed( 'importupload' ) ) {
 			$out->addHTML(
-				Xml::fieldset( $this->msg( 'import-html-fieldset-legend' )->text() ) . 
+				Xml::fieldset( $this->msg( 'import-html-fieldset-legend' )->text() ) . // ->plain() or ->escaped()
 					Xml::openElement(
 						'form',
 						array(
@@ -261,10 +472,10 @@ class SpecialHtml2Wiki extends SpecialPage {
 					Xml::openElement( 'table', array( 'id' => 'mw-import-table-html' ) ) . // new id
 					"<tr>
 					<td class='mw-label'>" .
-					Xml::label( $this->msg( 'import-html-filename' )->text(), 'htmlimport' ) . 
+					Xml::label( $this->msg( 'import-html-filename' )->text(), 'userfile' ) . 
 					"</td>
 					<td class='mw-input'>" .
-					Html::input( 'htmlimport', '', 'file', array( 'id' => 'htmlimport' ) ) . ' ' .
+					Html::input( 'userfile', '', 'file', array( 'id' => 'userfile' ) ) . ' ' .
 					"</td>
 				</tr>
 				<tr>
@@ -546,5 +757,38 @@ class SpecialHtml2Wiki extends SpecialPage {
 		}
 	}
 
-	
+	/**
+	 * Show the upload form with error message, but do not stash the file.
+	 *
+	 * @param string $message HTML string
+	 */
+	protected function showUploadError( $message ) {
+		$message = '<h2>' . $this->msg( 'uploadwarning' )->escaped() . "</h2>\n" .
+			'<div class="error">' . $message . "</div>\n";
+		$this->showForm( $message );
+	}
+    
+    public function tidyup () {
+        if (class_exists('Tidy')) {
+            // cleanup output
+            $config = array(
+                'indent'        => false,
+                'output-xhtml'  => true,
+                'wrap'          => 80
+            );
+            $encoding = 'utf8';
+            $tidy = new Tidy;
+            $tidy->parseString($this->mContent, $config, $encoding);
+            $tidy->cleanRepair();
+            if(!empty($tidy->errorBuffer)) {
+              echo "The following errors or warnings occurred:\n";
+              echo $tidy->errorBuffer;
+            }
+            // just focus on the body of the document
+            $this->mContent = (string) $tidy->body();
+            // convert the object to string
+            // $tidy = (string) $tidy;
+            return true;
+        }
+    }
 }
