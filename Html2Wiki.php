@@ -89,8 +89,16 @@ $wgAutoloadClasses['SpecialHtml2Wiki'] = "$dir/specials/SpecialHtml2Wiki.php";
 $wgMessagesDirs['Html2Wiki'] = "$dir/i18n";
 $wgExtensionMessagesFiles['Html2WikiAlias'] = "$dir/Html2Wiki.i18n.alias.php";
 
-// Register hooks
+// Register event handlers that attach to hooks in MW
+// There are many hooks https://www.mediawiki.org/wiki/Manual:Hooks
+// If all we want to do is add CSS or JS to our extension, that is better
+// done by the ResourceModule
 #$wgHooks['NameOfHook'][] = 'Html2WikiHooks::onNameOfHook';
+# e.g. the 'BeforePageDisplay' hook Allows last minute changes to the output 
+# page such as adding CSS or JavaScript by your extension.
+# There are many acceptable syntaxes for registering the event handler.
+# This one is a static method call
+#$wgHooks['BeforePageDisplay'][] = 'Html2WikiHooks::onBeforePageDisplay';
 
 // Register special pages
 $wgSpecialPages['Html2Wiki'] = 'SpecialHtml2Wiki'; // the name of the subclass
@@ -98,27 +106,24 @@ $wgSpecialPages['Html2Wiki'] = 'SpecialHtml2Wiki'; // the name of the subclass
 // deprecated but still works See getGroupName()
 // $wgSpecialPageGroups['Html2Wiki'] = 'media';
 
-// Register modules
-$wgResourceModules['ext.Html2Wiki.foo'] = array(
-	'scripts' => array(
-		'modules/ext.Html2Wiki.foo.js',
-	),
-	'styles' => array(
-		'modules/ext.Html2Wiki.foo.css',
-	),
-	'messages' => array(
-	),
-	'dependencies' => array(
-	),
-
+// Register modules through the ResourceLoader
+$wgResourceModules['ext.Html2Wiki'] = array(
+	'scripts' => array('modules/ext.Html2Wiki.js'),
+	'styles' => array('modules/ext.Html2Wiki.css'),
+	'messages' => array(),
+	'dependencies' => array(),
+    'position' => 'bottom', // bottom or top
 	'localBasePath' => __DIR__,
-	'remoteExtPath' => 'examples/Html2Wiki',
+	'remoteExtPath' => 'Html2Wiki/',
 );
 
 /* Logging */
 // By adding to wgLogTypes, we get an entry in the dropdown on Special:Log
 // Several keys in the i18n file are used to provide messages
 $wgLogTypes[] = 'html2wiki';
+//set the key for i18n instead of default "log-name-html2wiki"
+$wgLogNames['html2wiki']= 'html2wiki-log-name';
+$wgLogHeaders['html2wiki']= 'html2wiki-log-description';
 
 /* Configuration */
 
