@@ -110,7 +110,22 @@ $wgSpecialPages['Html2Wiki'] = 'SpecialHtml2Wiki'; // the name of the subclass
 $wgResourceModules['ext.Html2Wiki'] = array(
 	'scripts' => array('modules/ext.Html2Wiki.js'),
 	'styles' => array('modules/ext.Html2Wiki.css'),
-	'messages' => array(),
+    // awk -F':' '/html2wiki/ {print $1","}' i18n/en.json | sort | tr -d '\t '
+	'messages' => array(
+        "html2wiki",
+        "html2wiki-desc",
+        "html2wiki-fieldset-legend",
+        "html2wiki-filename",
+        "html2wiki-i18n-welcome",
+        "html2wiki-intro",
+        "html2wiki-log-description",
+        "html2wiki-log-name",
+        "html2wiki-not-allowed",
+        "html2wiki-summary",
+        "html2wiki-text",
+        "html2wiki-title",
+        "html2wiki_uploaderror"
+    ),
 	'dependencies' => array(),
     'position' => 'bottom', // bottom or top
 	'localBasePath' => __DIR__,
@@ -121,7 +136,8 @@ $wgResourceModules['ext.Html2Wiki'] = array(
 // By adding to wgLogTypes, we get an entry in the dropdown on Special:Log
 // Several keys in the i18n file are used to provide messages
 $wgLogTypes[] = 'html2wiki';
-//set the key for i18n instead of default "log-name-html2wiki"
+// set the keys for i18n instead of defaults "log-name-$type" "log-description-$type"
+// this makes all our messages start with the extension prefix
 $wgLogNames['html2wiki']= 'html2wiki-log-name';
 $wgLogHeaders['html2wiki']= 'html2wiki-log-description';
 
