@@ -1,7 +1,29 @@
 /**
- * Stylesheet for Foo in Html2Wiki.
- */
+* Stylesheet for Html2Wiki.
+* This is based on https://www.mediawiki.org/wiki/Extension:FileSystemListing#Using_jQuery_to_build_collapsable_directory_tree_with_icons
+* which uses jQuery to build a collapsible directory tree with icons
+*/
 
-.mw-html2wiki-foo {
+.mw-html2wiki {
 	display: block;
+}
+
+
+/** extensions/Html2Wiki/modules/ext.Html2Wiki.css */
+ul.mw-ext-Html2Wiki {
+    list-style: none; margin: 0; padding: 0;
+}
+ul.mw-ext-Html2Wiki li {
+    background-image: url(images/icons/page.png); background-position: 0 1px; background-repeat: no-repeat;
+    padding-left: 20px;
+}
+ul.mw-ext-Html2Wiki li.folder {
+    background-image: url(images/icons/folder.png);
+}
+ 
+ul.mw-ext-Html2Wiki a {
+    color: #000000; cursor: pointer; text-decoration: none;
+}
+ul.mw-ext-Html2Wiki a:hover {
+    text-decoration: underline;
 }
