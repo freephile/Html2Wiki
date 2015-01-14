@@ -1,19 +1,22 @@
 {
-	"@metadata": {
-		"authors": [
-			"freephile"
-		]
-	},
-	"html2wiki": "Import HTML content",
-	"html2wiki-desc": "Import HTML content into your wiki",
-	"html2wiki-summary": "Description appearing on top of [[Special:Html2Wiki]] - but it's not.",
-	"html2wiki-i18n-welcome": "Welcome to the localization file of the Html2Wiki extension.",
-    "html2wiki-intro": "Use this form to import HTML content into your wiki",
-    "html2wiki-title": "Import HTML",
-	"import-html-fieldset-legend": "Import HTML content",
-	"import-html-text": "Nominate your HTML source content. Future versions may allow for importing directly via URL.  Currently, you must have saved HTML locally on your computer",
-	"import-html-filename": "Filename:",
-	"import-html-not-allowed": "Sorry, you must be an Admin, or have import privileges to use this form.",
-	"log-name-html2wiki": "HTML Import log",
-	"log-description-html2wiki": "Below is a list of the most recent HTML imports"
+  "@metadata": {
+    "authors": [
+      "freephile"
+    ]
+  },
+  "html2wiki": "Import HTML content",
+  "html2wiki-desc": "Import HTML content into your wiki",
+  "html2wiki-summary": "Description appearing on top of [[Special:Html2Wiki]] - but it's not.",
+  "html2wiki-i18n-welcome": "Welcome to the localization file of the Html2Wiki extension.",
+  "html2wiki-intro": "Use this form to import HTML content into your wiki",
+  "html2wiki-title": "Import HTML",
+  "html2wiki-fieldset-legend": "Import HTML content",
+  "html2wiki_filenotfound": "File ($1) not found",
+  "html2wiki-text": "Nominate your HTML source content. Future versions may allow for importing directly via URL.  Currently, you must have saved HTML locally on your computer",
+  "html2wiki-filename": "Filename:",
+  "html2wiki-not-allowed": "Sorry, you must be an Admin, or have import privileges to use this form.",
+  "html2wiki-log-name": "HTML Import log",
+  "html2wiki-log-description": "Below is a list of the most recent HTML imports",
+  "html2wiki_multiple_body": "Found more than one set of <body> tags in \n$1",
+  "html2wiki_uploaderror": "There was an error handling the file upload:\n$1"
 }
