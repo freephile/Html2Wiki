@@ -1,0 +1,4 @@
+This folder is for temporarily storing local files for testing.
+Of this feature becomes part of the production system, there
+will be an option $wgHtml2WikiDataDirectory so this dir is not
+in a web accessible location.
