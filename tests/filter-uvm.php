@@ -45,6 +45,8 @@ $tidyFile="$dirname/$basename.tidy.$extension";
 
 /**
  * Tidy our input 
+ * http://tidy.sourceforge.net/docs/tidy_man.html
+ * 
  * Use the Tidy extension bundled with PHP5
  * @link http://php.net/manual/en/book.tidy.php
  * @link http://php.net/manual/en/tidy.installation.php
@@ -58,7 +60,9 @@ if (class_exists('Tidy')) {
     $config = array(
         'indent'        => false,
         'output-xhtml'  => true,
-        //'wrap'          => 80
+        //'wrap'          => 80,
+        'show-body-only' => true,
+        'merge-divs'     => true,
     );
     $encoding = 'utf8';
     $tidy = new Tidy;
@@ -69,8 +73,12 @@ if (class_exists('Tidy')) {
       echo $tidy->errorBuffer;
     }
     // convert the object to string
-    $tidy = (string) $tidy;
-    file_put_contents($tidyFile, $tidy);
+    // $tidyout = (string) $tidy;
+    // focus just on the <body> tag
+    // this is equivalent to the --show-body-only option
+    $tidyout = (string) $tidy->body();
+
+    // file_put_contents($tidyFile, $tidyout);
 } else {
     die ("Tidy is not bundled as an extension.");
 }
@@ -86,8 +94,8 @@ $purifier = new HTMLPurifier();
 // $clean_html = $purifier->purify($raw);
 $clean_html = $purifier->purify($tidy);
 // echo $clean_html;
-echo "writing to $pureFile\n";
-file_put_contents($pureFile, $clean_html);
+// echo "writing to $pureFile\n";
+// file_put_contents($pureFile, $clean_html);
 // @link http://bit.ly/1vrlTVl
 
 
@@ -110,6 +118,10 @@ file_put_contents($pureFile, $clean_html);
      html_entity_decode("&rsquo;", ENT_HTML401, "UTF-8");
  * 
  * 
+ * Instead of preserving these characters, we could replace them with a substitution
+ * map; or using the --ascii-chars=true option to tidy.  With --ascii-chars=true
+ * it modifies the behavior of --clean=yes to downgrade named character entities
+ * to their closest ascii equivalents.
 $substitutions = array(
   '&rsquo;' => ',
   '&ldquo;' => ", # “
@@ -147,16 +159,48 @@ $doc->loadHTML($html);
 // use Tidy output instead of the "regex-treated" html
 // $doc->loadHTML($tidy);
 // $doc->loadHTML($raw); // can't do this because the script tags are causing problem
+
+
 $scriptTags = $doc->getElementsByTagName('script');
 $length = $scriptTags->length;
 // for each tag, remove it from the DOM
 for ($i = 0; $i < $length; $i++) {
   $scriptTags->item($i)->parentNode->removeChild($scriptTags->item($i));
 }
+
+
+function listElements($elemName, $attr="href") {
+    global $doc;
+    echo "\n\nHere are the $elemName nodes\n";
+    $els = $doc->getElementsByTagName($elemName);
+    // var_dump($els);
+    
+    for ($i = 0; $i < $els->length; $i++) {
+        $el = $els->item($i);
+        $attrs = $el->attributes;
+        // var_dump ($attrs);
+        echo "{$el->nodeName} -> ";
+        echo ($attrs->getNamedItem("id") !== null)? 
+            "id {$attrs->getNamedItem("id")->value} ":
+            "id null ";
+        echo "{$el->nodeValue} -> ";
+        echo "{$attrs->getNamedItem($attr)->value}\n";
+        
+        // var_dump($el);
+        // echo "$attrs->getAttribute($attr)\n";
+        // echo "$el->getAttribute($attr)\n";
+    }
+}
+listElements('a', 'href');
+
+listElements('img', 'src');
+
+
+
 // get the HTML string back
 $domhtml = $doc->saveHTML();
-echo "writing to $domFile\n";
-file_put_contents($domFile, $domhtml);
+// echo "writing to $domFile\n";
+// file_put_contents($domFile, $domhtml);
 
 
 
