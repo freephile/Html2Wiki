@@ -374,6 +374,7 @@ class SpecialHtml2Wiki extends SpecialPage {
         // if($this->doLocalFile("/vagrant/mediawiki/extensions/Html2Wiki/data/uvm-1.1d/docs/html/files/base/uvm_printer-svh.html")) {
         if($this->doLocalFile("/vagrant/mediawiki/extensions/Html2Wiki/data/docs/htmldocs/mgc_html_help/overview04.html")) {
             $this->showContent();
+            $this->saveArticle();
         } else {
             $this->showForm();
         }
@@ -385,6 +386,28 @@ class SpecialHtml2Wiki extends SpecialPage {
         return true;
     }
     
+    private function saveArticle () {
+        $user = $this->getUser();
+        $token = $user->editToken();
+        $api = new ApiMain(
+            new DerivativeRequest(
+                $this->getRequest(), // Fallback upon $wgRequest if you can't access context
+                array(
+                    'action'     => 'edit',
+                    'title'      => 'NewPage',
+                    'text'       => 'Hello World',
+                    // 'appendtext' => '[[Category:UVM-1.1]]',
+                    'summary'    => 'This is a summary',
+                    'notminor'   => true,
+                    'token'      => $token
+                ),
+                true // was posted?
+            ),
+            true // enable write?
+        );
+ 
+        $api->execute();    
+    }
     
     /**
      * We don't have to worry about access restrictions here, because the whole
@@ -400,6 +423,7 @@ class SpecialHtml2Wiki extends SpecialPage {
         $out->addModules( array('ext.Html2Wiki', 'ext.Html2Wiki.clickable') ); // add our javascript and css
         $out->addWikiMsg('html2wiki-intro');
 		$out->addHTML( '<div id="hello">Hello World</div>' );
+        
         // display an error message if any
         if ($message) {
             $out->addHTML('<div class="error">' . $message . "</div>\n");
