@@ -1,2 +1,26 @@
+The documentation is a work in progress
+
+Importing a file works like this
+
+                     Select
+                       |
+                       v
+                    Upload
+                       |
+                       v
+       Tidy ----->  Normalize
+                       |
+                       |
+       Regex ----->    v
+       Purify ---->  Clean
+                       |
+                       |
+       Regex ----->    v
+       Parsoid ---> Convert
+                       |
+                       v
+                     Save
+
+
 See
 https://docs.google.com/document/d/1PWLD3vlD8-l66hSrKWwnrUR05CanslXsi2vLlEPhfgs/edit
