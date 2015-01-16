@@ -96,27 +96,8 @@ function addNewSection( summary, content ) {
 		}
 	} );
 }
-/** More modern example, but without any defintion
-( function ( mw, $ ) {
-	var foo, x, y;
 
-	function my() {
 
-	}
-
-	foo = {
-		init: function () {
-			// ..
-		},
-		doStuff: function () {
-			// ..
-		}
-	};
-
-	mw.libs.foo = foo;
-
-}( mediaWiki, jQuery ) );
-*/
 
 /** 
  * 
@@ -149,4 +130,39 @@ jQuery(document).ready(function ($) {
  
     // Hide all lists except the outermost.
     $('ul ul').hide();
+	
+	// #h2wWand isn't available on the form screen, only on the result.
+	// @todo wrap this in a function that is only called on that view
+	var h2wButton = $( "#h2wWand" );
+	var h2wContent = $( "#h2wContent" ).html();
+	console.log( h2wContent );	
+	h2wButton.click(function() {
+		h2wContent = h2wContent.replace(/<(style|script|object|applet|embed)\b[^>]*>.*?<\/\1>/g, '');
+	});
+	
+	// click the label, and show all the elments of the source
+	$( "#h2wLabel" ).click(function() {
+	   // alert('hello world');
+
+		var $content = $( "#h2wContent" ),
+		str = $content.html(),
+		html = $.parseHTML( str ),
+		nodeNames = [];
+
+		// Append the parsed HTML
+		// $content.append( html );
+		// Gather the parsed HTML's node names
+		$.each( html, function( i, el ) {
+		  nodeNames[ i ] = "<li>" + el.nodeName + "</li>";
+		});
+
+		// Insert the node names
+		$content.append( "<h3>Node Names:</h3>" );
+		$( "<ol></ol>" )
+		  .append( nodeNames.join( "" ) )
+		  .appendTo( $content );
+
+	});
+
 });
+
