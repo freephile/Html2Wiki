@@ -108,7 +108,7 @@ $wgSpecialPages['Html2Wiki'] = 'SpecialHtml2Wiki'; // the name of the subclass
 
 // Register modules through the ResourceLoader
 $wgResourceModules['ext.Html2Wiki'] = array(
-	'scripts' => array('modules/ext.functions.Html2Wiki.js'),
+	'scripts' => array('modules/ext.Html2Wiki.js'),
 	'styles' => array('modules/ext.Html2Wiki.css'),
     // When our module is loaded, these messages will be available through mw.msg().
 	// E.g. in JavaScript you can access them with mw.message( 'myextension-hello-world' ).text()
@@ -133,37 +133,6 @@ $wgResourceModules['ext.Html2Wiki'] = array(
 	// and ResourceLoader will make sure they're loaded before you.
 	// You don't need to manually list 'mediawiki' or 'jquery', which are always loaded.
 	'dependencies' => array(),
-    'position' => 'top', // where in the page is this js loaded? (bottom or top)
-    // You need to declare the base path of the file paths in 'scripts' and 'styles'
-	'localBasePath' => __DIR__,
-	'remoteExtPath' => 'Html2Wiki/',
-);
-$wgResourceModules['ext.Html2Wiki.clickable'] = array(
-	'scripts' => array('modules/ext.Html2Wiki.js', 'modules/ext.init.Html2Wiki.js'),
-	'styles' => array(''),
-    // When our module is loaded, these messages will be available through mw.msg().
-	// E.g. in JavaScript you can access them with mw.message( 'myextension-hello-world' ).text()
-    // To make sure all our messages are loaded, we can find them in the en.json like so:
-    // awk -F':' '/html2wiki/ {print $1","}' i18n/en.json | sort | tr -d '\t '
-	'messages' => array(
-        "html2wiki",
-        "html2wiki-desc",
-        "html2wiki-fieldset-legend",
-        "html2wiki-filename",
-        "html2wiki-i18n-welcome",
-        "html2wiki-intro",
-        "html2wiki-log-description",
-        "html2wiki-log-name",
-        "html2wiki-not-allowed",
-        "html2wiki-summary",
-        "html2wiki-text",
-        "html2wiki-title",
-        "html2wiki_uploaderror"
-    ),
-    // If your scripts need code from other modules, list their identifiers as dependencies
-	// and ResourceLoader will make sure they're loaded before you.
-	// You don't need to manually list 'mediawiki' or 'jquery', which are always loaded.
-	'dependencies' => array('ext.Html2Wiki'),
     'position' => 'bottom', // where in the page is this js loaded? (bottom or top)
     // You need to declare the base path of the file paths in 'scripts' and 'styles'
 	'localBasePath' => __DIR__,
