@@ -446,9 +446,11 @@ class SpecialHtml2Wiki extends SpecialPage {
             
             $this->tidyup($tidyOpts);
             $this->cleanUVMFile();
+            $this->substituteTemplates();
+            $this->eliminateCruft();
             // $this->showRaw();
-            $this->showContent();
-            // $this->saveArticle();
+            // $this->showContent();
+            $this->saveArticle();
         } else {
             $this->showForm();
         }
@@ -465,9 +467,12 @@ class SpecialHtml2Wiki extends SpecialPage {
     }
     
     private function saveArticle () {
+        $out = $this->getOutput();
         $user = $this->getUser();
         $token = $user->editToken();
         $title = $this->makeTitle( NS_MAIN );
+        $request = $this->getRequest();
+        $summary = $request->getText('mw-import-comment', '[[Html2Wiki imported]]');
         $api = new ApiMain(
             new DerivativeRequest(
                 $this->getRequest(), // Fallback upon $wgRequest if you can't access context
@@ -476,7 +481,7 @@ class SpecialHtml2Wiki extends SpecialPage {
                     'title'      => $title,
                     'text'       => $this->mContent,
                     // 'appendtext' => '[[Category:UVM-1.1]]',
-                    'summary'    => 'This is a summary',
+                    'summary'    => $summary,
                     'notminor'   => true,
                     'token'      => $token
                 ),
@@ -485,7 +490,8 @@ class SpecialHtml2Wiki extends SpecialPage {
             true // enable write?
         );
  
-        $api->execute();    
+        $api->execute();
+        $out->addWikiText('<div class="success">' . $title . ' saved to [[' . $title . ']]</div>');
     }
     
     /**
@@ -592,6 +598,10 @@ class SpecialHtml2Wiki extends SpecialPage {
      * In testing tidy from the command line, it would NOT use a configuration file
      * If you have an existing tidy.conf you want to use, you can convert a config
      * awk '{ printf " --"$0 }' /vagrant/mediawiki/extensions/Html2Wiki/tidy.conf
+     * 
+     * @todo capture Tidy errors for logging or display?
+     * see http://stackoverflow.com/questions/6472102/redirecting-i-o-in-php
+     * @todo figure out if we need to use "force" option in Tidy?
      */
     public function tidyup ($tidyConfig = NULL) {
         $this->mTidyConfig = realpath( __DIR__  . "/../tidy.conf");
@@ -625,7 +635,7 @@ class SpecialHtml2Wiki extends SpecialPage {
             if ( !is_readable($_FILES['userfile']['tmp_name']) ) {
                 echo "Tidy's target not found, or not readable\n";
             }
-            echo "executing $escaped_command";
+            //echo "executing $escaped_command";
             $this->mContentTidy = $this->mContent = shell_exec($escaped_command);
         }
         $this->isTidy = true;
@@ -637,9 +647,10 @@ class SpecialHtml2Wiki extends SpecialPage {
         $reHead = "#<head>.*?</head>#is";
         $reBody = "#<body\b[^>]*>(.*?)</body>#is";
         $reScript = "#<script\b[^>]*>(.*?)</script>#is"; // caseless dot-all
+        $reNoscript = "#<noscript\b[^>]*>(.*?)</noscript>#is"; // caseless dot-all
         $reComment = "#<!--(.*?)-->#s"; 
         $reEmptyAnchor = "#<a\b[^>]*></a>#is"; // empty anchor tags
-        $reCollapsePre = '#</pre>.*?<pre class="pCode">#s'; // sibling pre tags
+        $reCollapsePre = '#</pre>\s*?<pre class="pCode">#s'; // sibling pre tags
         $reBlankLine = "#^\s?$\n#m";
         // simulate Tidy by ditching the <head> and getting only the <body>
         // but the source HTML could still be in a hurtful mess
@@ -648,6 +659,7 @@ class SpecialHtml2Wiki extends SpecialPage {
             $this->mContent = preg_filter($reBody, "$1", $this->mContent);
         }
         $this->mContent = preg_replace($reScript, '', $this->mContent);
+        $this->mContent = preg_replace($reNoscript, '', $this->mContent);
         $this->mContent = preg_replace($reEmptyAnchor, '', $this->mContent);
         $this->mContent = preg_replace($reCollapsePre, '', $this->mContent);
         
@@ -657,5 +669,56 @@ class SpecialHtml2Wiki extends SpecialPage {
 
     }
     
+    
+    /**
+     * A method to find certain HTML fragments that you wish to replace with 
+     * Templates that you've designed in your wiki.
+     * 
+     * For example, you're importing a large set of pages and every page contains 
+     * a common footer.
+     * 
+     * You can define those strings in this method, and swap in the wiki
+     * templates.  Corresponding wiki templates must be made by hand. 
+     * 
+     * For example, we'll replace 
+     *     <div class="BlankFooter" id="BlankFooter">&nbsp;</div>
+     *     <div class="Footer" id="Footer">&nbsp;</div>
+     * with 
+     *     {{BlankFooter}}
+     *     {{Footer}}
+     * 
+     * Note: this function uses string replacement, not regular expressions
+     * Also, we use a case insensitive match because <div and <Div are the same
+     * in HTML.  Although the strings /should/ be consistent throughout your source
+     * we'll assume that you might still be hand editing HTML which introduces
+     * such inconsistencies.
+     */
+    public function substituteTemplates () {
+        $myReplacements = array(
+            '<div class="BlankFooter" id="BlankFooter">&nbsp;</div>' 
+            => '{{BlankFooter}}',
+            '<div class="Footer" id="Footer">&nbsp;</div>'
+            => '{{Footer}}'
+        );
+        $this->mContent = str_ireplace(array_keys($myReplacements), array_values($myReplacements), $this->mContent);
+    }
+    
+    /**
+     * Similar to substituteTemplates() but this function is for removing 
+     * leftover presentational or functional HTML that is not suitable content
+     * for the wiki-fied version.
+     * 
+     * E.g.  <div id="BodyPopup" class="BodyPopup"></div>
+     *       <div class="HideBody" id="HideBody">&nbsp;</div>
+     * should be removed from the source HTML
+     */
+    public function eliminateCruft () {
+        $myNeedles = array(
+            '<div id="BodyPopup" class="BodyPopup"></div>', 
+            '<div class="HideBody" id="HideBody">&nbsp;</div>'
+        );
+        $this->mContent = str_ireplace($myNeedles, '', $this->mContent);
+
+    }
 }
 
