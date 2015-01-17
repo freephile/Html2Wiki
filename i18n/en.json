@@ -5,6 +5,7 @@
     ]
   },
   "html2wiki": "Import HTML content",
+  "html2wiki-comment": "File imported by [https://www.mediawiki.org/wiki/Extension:Html2Wiki Html2Wiki]",
   "html2wiki-desc": "Import HTML content into your wiki",
   "html2wiki-summary": "Description appearing on top of [[Special:Html2Wiki]] - but it's not.",
   "html2wiki-i18n-welcome": "Welcome to the localization file of the Html2Wiki extension.",
