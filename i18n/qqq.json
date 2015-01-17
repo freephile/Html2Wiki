@@ -5,6 +5,7 @@
     ]
   },
   "html2wiki": "The name of the extension's entry in Special:SpecialPages",
+  "html2wiki-comment": "The edit history log comment if one is not provided in the web form",
   "html2wiki-desc": "{{desc}}",
   "html2wiki-summary": "Description appearing on top of [[Special:Html2Wiki]].",
   "html2wiki-i18n-welcome": "Welcome to the localization file of the Html2Wiki extension.",
@@ -18,5 +19,5 @@
   "html2wiki-log-name": "for the Special:Log log name that appears in the drop-down on the Special:Log page",
   "html2wiki-log-description": "for the Special:Log description that appears on the Special:Log page when you filter logs on this specific log name",
   "html2wiki_multiple_body": "Found more than one set of <body> tags in \n$1",
-  "html2wiki_uploaderror": "There was an error handling the file upload:\n$1",
+  "html2wiki_uploaderror": "There was an error handling the file upload:\n$1"
 }

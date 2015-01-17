@@ -19,5 +19,6 @@
   "html2wiki-log-name": "HTML Import log",
   "html2wiki-log-description": "Below is a list of the most recent HTML imports",
   "html2wiki_multiple_body": "Found more than one set of <body> tags in \n$1",
-  "html2wiki_uploaderror": "There was an error handling the file upload:\n$1"
+  "html2wiki_uploaderror": "There was an error handling the file upload:\n$1",
+  "logentry-html2wiki": "$1 {{GENDER:$2|imported}} page $3"
 }

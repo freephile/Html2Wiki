@@ -21,6 +21,7 @@ class SpecialHtml2Wiki extends SpecialPage {
     private $mFilename;
     /** @var int The size, in bytes, of the uploaded file. */
     private $mFilesize;
+    private $mSummary;
     
     private $mIsTidy;      // @var bool true once passed through tidy
     private $mTidyErrors;  // the error output of tidy
@@ -75,12 +76,23 @@ class SpecialHtml2Wiki extends SpecialPage {
 	public $uploadFormTextTop;
 	public $uploadFormTextAfterSummary;
 
+    
+    
+    protected function loadRequest() {
+        $this->mRequest = $request = $this->getRequest();
+        // get the value from the form, or use the default defined in the language messages
+
+		//$commentDefault = wfMessage( 'html2wiki-comment' )->inContentLanguage()->plain();
+        $commentDefault = wfMessage( 'html2wiki-comment' )->inContentLanguage()->parse();
+        $this->mComment = $request->getText('log-comment', $commentDefault);
+    }
+    
 	/**
 	 * Initialize instance variables from request and create an Upload handler
      * @todo review and cull the methods that we use here
      * This method was copied from Special:Upload assuming it would be 
      * applicable to our use case.
-	 */
+	 
 	protected function loadRequest() {
 		$this->mRequest = $request = $this->getRequest();
 		$this->mSourceType = $request->getVal( 'wpSourceType', 'file' );
@@ -124,7 +136,7 @@ class SpecialHtml2Wiki extends SpecialPage {
 		$this->uploadFormTextTop = '';
 		$this->uploadFormTextAfterSummary = '';
 	}
-
+*/
     
     /**
 	 * Constructor : initialise object
@@ -212,9 +224,9 @@ class SpecialHtml2Wiki extends SpecialPage {
 		}
 		// from parent, throw an error if the wiki is in read-only mode
 		$this->checkReadOnly();
-        // not sure we need all the fandango of loadRequest();  I think we can just simply do parent::getRequest();
 		$request = $this->getRequest();
 		if ( $request->wasPosted() && $request->getVal( 'action' ) == 'submit' ) {
+            $this->loadRequest();
 			$this->doImport();
 		} else {
 		$this->showForm();
@@ -471,17 +483,14 @@ class SpecialHtml2Wiki extends SpecialPage {
         $user = $this->getUser();
         $token = $user->editToken();
         $title = $this->makeTitle( NS_MAIN );
-        $request = $this->getRequest();
-        $summary = $request->getText('mw-import-comment', '[[Html2Wiki imported]]');
         $api = new ApiMain(
             new DerivativeRequest(
                 $this->getRequest(), // Fallback upon $wgRequest if you can't access context
                 array(
                     'action'     => 'edit',
                     'title'      => $title,
-                    'text'       => $this->mContent,
-                    // 'appendtext' => '[[Category:UVM-1.1]]',
-                    'summary'    => $summary,
+                    'text'       => $this->mContent,  // can only use one of 'text' or 'appendtext'
+                    'summary'    => $this->mComment,
                     'notminor'   => true,
                     'token'      => $token
                 ),
@@ -490,9 +499,40 @@ class SpecialHtml2Wiki extends SpecialPage {
             true // enable write?
         );
  
-        $api->execute();
-        $out->addWikiText('<div class="success">' . $title . ' saved to [[' . $title . ']]</div>');
+        // this test is not actually valid
+        if ($api->execute()) {
+            $out->addWikiText('<div class="success">' . $title . ' saved to [[' . $title . ']]</div>');
+        } else {
+            $out->addWikiText('<div class="error">' . $title . ' already exists at [[' . $title . ']]</div>');
+        }
+        $logEntry = new ManualLogEntry( 'html2wiki', 'import' ); // Log action 'import' in the Special:Log for 'html2wiki'
+        $logEntry->setPerformer( $user ); // User object, the user who performed this action
+        $logEntry->setTarget( $title ); // The page that this log entry affects, a Title object
+        $logEntry->setComment( $this->mComment );
+        $logid = $logEntry->insert();
+        // optionally publish the log item to recent changes
+        // $logEntry->publish( $logid );
     }
+    
+    static function saveCat( $filename, $category ) {
+        global $wgContLang, $wgUser;
+		$mediaString = strtolower( $wgContLang->getNsText( NS_FILE ) );
+		$title = $mediaString . ':' . $filename;
+		$text = "\n[[" . $category . "]]";
+		$wgEnableWriteAPI = true;    
+		$params = new FauxRequest(array (
+			'action' => 'edit',
+			'section'=> 'new',
+			'title' =>  $title,
+			'text' => $text,
+			'token' => $wgUser->editToken(),//$token."%2B%5C",
+		), true, $_SESSION );
+		$enableWrite = true; // This is set to false by default, in the ApiMain constructor
+		$api = new ApiMain( $params, $enableWrite );
+		$api->execute();
+		$data = &$api->getResultData();
+		return $mediaString;
+	}
     
     /**
      * We don't have to worry about access restrictions here, because the whole
@@ -542,8 +582,8 @@ class SpecialHtml2Wiki extends SpecialPage {
 					"</td>
 					<td class='mw-input'>" .
 					Xml::input( 'log-comment', 50,
-						( $this->sourceName == 'upload' ? $this->logcomment : '' ),
-						array( 'id' => 'mw-import-comment', 'type' => 'text' ) ) . ' ' .
+						( $this->sourceName == 'upload' ? $this->logcomment : '' ), // value
+						array( 'id' => 'mw-import-comment', 'type' => 'text' ) ) . ' ' . // attribs
 					"</td>
 				</tr>
 				<tr>
