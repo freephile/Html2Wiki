@@ -147,6 +147,7 @@ $wgLogTypes[] = 'html2wiki';
 // this makes all our messages start with the extension prefix
 $wgLogNames['html2wiki']= 'html2wiki-log-name';
 $wgLogHeaders['html2wiki']= 'html2wiki-log-description';
+$wgLogActionsHandlers['html2wiki/*'] = 'LogFormatter';
 
 /* Configuration */
 

@@ -481,7 +481,7 @@ class SpecialHtml2Wiki extends SpecialPage {
     private function saveArticle () {
         $out = $this->getOutput();
         $user = $this->getUser();
-        $token = $user->editToken();
+        $token = $user->getEditToken();
         $title = $this->makeTitle( NS_MAIN );
         $api = new ApiMain(
             new DerivativeRequest(
@@ -525,7 +525,7 @@ class SpecialHtml2Wiki extends SpecialPage {
 			'section'=> 'new',
 			'title' =>  $title,
 			'text' => $text,
-			'token' => $wgUser->editToken(),//$token."%2B%5C",
+			'token' => $wgUser->getEditToken(),//$token."%2B%5C",
 		), true, $_SESSION );
 		$enableWrite = true; // This is set to false by default, in the ApiMain constructor
 		$api = new ApiMain( $params, $enableWrite );
