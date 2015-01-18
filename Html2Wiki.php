@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Html2Wiki extension - enables you to import HTML content into your wiki.
  *
@@ -47,8 +48,7 @@
  *
  * @file
  */
-
-if ( !defined( 'MEDIAWIKI' ) ) {
+if (!defined('MEDIAWIKI')) {
     echo <<<EOT
 This file is an extension to the MediaWiki software and cannot be used on its own.
 
@@ -56,27 +56,27 @@ To install this extension, put the following line in LocalSettings.php:
 require_once( "\$IP/extensions/Html2Wiki/Html2Wiki.php" );
 
 EOT;
-	die( 1 );
+    die(1);
 }
 
 /**
  * Add in a version compatibility check
  * I'm unsure what version we will require, but this is how you do it
  */
-if ( version_compare( $wgVersion, '1.21', '<' ) ) {
-	die( "This extension requires MediaWiki 1.21+\n" );
+if (version_compare($wgVersion, '1.21', '<')) {
+    die("This extension requires MediaWiki 1.21+\n");
 }
 
 $wgExtensionCredits['other'][] = array(
-	'path' => __FILE__,
-	'name' => 'Html2Wiki',
-	'author' => array(
-		'Greg Rundlett',
-	),
-	'version'  => '0.1.0',
-	'url' => 'https://www.mediawiki.org/wiki/Extension:Html2Wiki',
-	'descriptionmsg' => 'html2wiki-desc',
-	'license-name' => 'GPL-2.0+', // GNU General Public License v2.0 or later
+    'path' => __FILE__,
+    'name' => 'Html2Wiki',
+    'author' => array(
+        'Greg Rundlett',
+    ),
+    'version' => '0.1.0',
+    'url' => 'https://www.mediawiki.org/wiki/Extension:Html2Wiki',
+    'descriptionmsg' => 'html2wiki-desc',
+    'license-name' => 'GPL-2.0+', // GNU General Public License v2.0 or later
 );
 
 /* Setup */
@@ -99,22 +99,20 @@ $wgExtensionMessagesFiles['Html2WikiAlias'] = "$dir/Html2Wiki.i18n.alias.php";
 # There are many acceptable syntaxes for registering the event handler.
 # This one is a static method call
 #$wgHooks['BeforePageDisplay'][] = 'Html2WikiHooks::onBeforePageDisplay';
-
 // Register special pages
 $wgSpecialPages['Html2Wiki'] = 'SpecialHtml2Wiki'; // the name of the subclass
 // Set the group for our Special Page(s)
 // deprecated but still works See getGroupName()
 // $wgSpecialPageGroups['Html2Wiki'] = 'media';
-
 // Register modules through the ResourceLoader
 $wgResourceModules['ext.Html2Wiki'] = array(
-	'scripts' => array('modules/ext.Html2Wiki.js'),
-	'styles' => array('modules/ext.Html2Wiki.css'),
+    'scripts' => array('modules/ext.Html2Wiki.js'),
+    'styles' => array('modules/ext.Html2Wiki.css'),
     // When our module is loaded, these messages will be available through mw.msg().
-	// E.g. in JavaScript you can access them with mw.message( 'myextension-hello-world' ).text()
+    // E.g. in JavaScript you can access them with mw.message( 'myextension-hello-world' ).text()
     // To make sure all our messages are loaded, we can find them in the en.json like so:
     // awk -F':' '/html2wiki/ {print $1","}' i18n/en.json | sort | tr -d '\t '
-	'messages' => array(
+    'messages' => array(
         "html2wiki",
         "html2wiki-desc",
         "html2wiki-fieldset-legend",
@@ -130,13 +128,13 @@ $wgResourceModules['ext.Html2Wiki'] = array(
         "html2wiki_uploaderror"
     ),
     // If your scripts need code from other modules, list their identifiers as dependencies
-	// and ResourceLoader will make sure they're loaded before you.
-	// You don't need to manually list 'mediawiki' or 'jquery', which are always loaded.
-	'dependencies' => array(),
+    // and ResourceLoader will make sure they're loaded before you.
+    // You don't need to manually list 'mediawiki' or 'jquery', which are always loaded.
+    'dependencies' => array(),
     'position' => 'bottom', // where in the page is this js loaded? (bottom or top)
     // You need to declare the base path of the file paths in 'scripts' and 'styles'
-	'localBasePath' => __DIR__,
-	'remoteExtPath' => 'Html2Wiki/',
+    'localBasePath' => __DIR__,
+    'remoteExtPath' => 'Html2Wiki/',
 );
 
 /* Logging */
@@ -145,8 +143,8 @@ $wgResourceModules['ext.Html2Wiki'] = array(
 $wgLogTypes[] = 'html2wiki';
 // set the keys for i18n instead of defaults "log-name-$type" "log-description-$type"
 // this makes all our messages start with the extension prefix
-$wgLogNames['html2wiki']= 'html2wiki-log-name';
-$wgLogHeaders['html2wiki']= 'html2wiki-log-description';
+$wgLogNames['html2wiki'] = 'html2wiki-log-name';
+$wgLogHeaders['html2wiki'] = 'html2wiki-log-description';
 $wgLogActionsHandlers['html2wiki/*'] = 'LogFormatter';
 
 /* Configuration */
