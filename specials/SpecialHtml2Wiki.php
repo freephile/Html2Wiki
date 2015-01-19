@@ -26,6 +26,8 @@ class SpecialHtml2Wiki extends SpecialPage {
     private $mIsTidy;      // @var bool true once passed through tidy
     private $mTidyErrors;  // the error output of tidy
     private $mTidyConfig;  // the configuration we want to use for tidy.
+    
+    private $mDataDir; // where we want to temporarily store and retrieve data from
 
 
 
@@ -445,6 +447,7 @@ class SpecialHtml2Wiki extends SpecialPage {
             $this->cleanUVMFile();
             $this->substituteTemplates();
             $this->eliminateCruft();
+            $this->panDoc2Wiki();
             $this->autoCategorize();
             // $this->showRaw();
             // $this->showContent();
@@ -659,6 +662,9 @@ class SpecialHtml2Wiki extends SpecialPage {
         } else {
             $tidy = "/usr/bin/tidy";
             // only by passing the options as a long string worked.
+            // also, $this->mTidyErrors will never populate unless we explicitly 
+            // trap STDERR
+            // 2>&1 1> /dev/null
             $cmd = "$tidy -quiet -indent -ashtml $shellConfig {$_FILES['userfile']['tmp_name']}";
             $escaped_command = escapeshellcmd($cmd);
             if (!is_readable($_FILES['userfile']['tmp_name'])) {
@@ -769,5 +775,23 @@ class SpecialHtml2Wiki extends SpecialPage {
         }
         $this->mContent .= "\n" . implode(" ", $categoryTags);
     }
+ 
+    /**
+     * Use Pandoc to convert our content to mediawiki markup
+     */
+    public function panDoc2Wiki() {
+        // we could use sys_get_temp_dir()
+        $stage = realpath($this->mDataDir? $this->mDataDir: __FILE__ . "/../data/");
+        // $tempfilename = substr(str_shuffle(md5(microtime())), 0, 10);
+        $prefix='h2w';
+        $tempfilename = tempnam($stage, $prefix);
+        $handle = fopen($tempfilename, "w");
+        fwrite($handle, $this->mContent); // raw doesn't work at all
+        fclose($handle);
+        // file_put_contents($stage/$tempfilename, $this->mContent);
+        $this->mContent = shell_exec("pandoc -t mediawiki $tempfilename");
+        unlink($tempfilename);
+    }
+    
     
 }
