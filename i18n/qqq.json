@@ -5,6 +5,7 @@
     ]
   },
   "html2wiki": "The name of the extension's entry in Special:SpecialPages",
+  "html2wiki-collection-name": "If a zip file is uploaded, this is the unique name for the collection being imported.  E.g. UVM-1.1d such that all documents are organized around this path name at the root, and all files are tagged with this category.",
   "html2wiki-comment": "The edit history log comment if one is not provided in the web form",
   "html2wiki-desc": "{{desc}}",
   "html2wiki-summary": "Description appearing on top of [[Special:Html2Wiki]].",

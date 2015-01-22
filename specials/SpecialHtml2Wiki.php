@@ -21,15 +21,47 @@ class SpecialHtml2Wiki extends SpecialPage {
     private $mFilename;
 
     /** @var int The size, in bytes, of the uploaded file. */
-    private $mFilesize;
+    private $mFileSize;
     private $mSummary;
     private $mIsTidy;      // @var bool true once passed through tidy
     private $mTidyErrors;  // the error output of tidy
     private $mTidyConfig;  // the configuration we want to use for tidy.
     
+    private $mMimeType;  // the detected or inferred mime-type of the upload
+    
     private $mDataDir; // where we want to temporarily store and retrieve data from
+    private $mCollectionName; // the user-supplied name for the collection we're importing e.g. UVM-1.1d
 
+	/* Protected Static Members */
 
+	/** @var array List of common image files extensions and MIME-types
+     * and HTML MIME-type 
+     * as well as the compressed archive types we will allow
+     */
+	protected static $mimeTypes = array(
+        'gif'  => 'image/gif',
+        'jpe'  => 'image/jpeg',
+        'jpeg' => 'image/jpeg',
+        'jpg'  => 'image/jpeg',
+        'png'  => 'image/png',
+        'tif'  => 'image/tiff',
+        'tiff' => 'image/tiff',
+        'xbm'  => 'image/x-xbitmap',
+        'svg'  => 'image/svg+xml',
+        // compression only files, disallow
+        //'tar' => 'application/x-tar',
+        //'bz2' => 'application/x-bzip2', // bzip2
+        //'gz'  => 'application/x-gzip',
+        // HTML content
+        'htm'   => 'text/html',
+        'html'  => 'text/html',
+        // archives
+        'gz'     => 'application/x-gzip',
+        'gzip'   => 'application/x-gzip',
+        'tar.gz' => 'application/x-gtar',
+        'tgz'    => 'application/x-gtar',
+        'zip'    => 'application/zip',
+	);
 
     /** @todo review and cull the properties that we use here
      * These properties were copied from Special:Upload assuming they'd be 
@@ -85,6 +117,31 @@ class SpecialHtml2Wiki extends SpecialPage {
         $this->mComment = $request->getText('log-comment', $commentDefault);
     }
 
+	/**
+	 * @param $file string
+	 * @return bool|string
+	 */
+	public static function getMimeType( $file ) {
+		$realpath = realpath( $file );
+		if (
+			$realpath
+			&& function_exists( 'finfo_file' )
+			&& function_exists( 'finfo_open' )
+			&& defined( 'FILEINFO_MIME_TYPE' )
+		) {
+			$ext = finfo_file( finfo_open( FILEINFO_MIME_TYPE ), $realpath );
+        } else {
+            // Infer the MIME-type from the file extension
+		    $ext = strtolower( pathinfo( $file, PATHINFO_EXTENSION ) );
+        }
+
+		if ( isset( self::$mimeTypes[$ext] ) ) {
+			return self::$mimeTypes[$ext];
+		}
+
+		return false;
+	}
+    
     /**
      * Initialize instance variables from request and create an Upload handler
      * @todo review and cull the methods that we use here
@@ -266,22 +323,13 @@ class SpecialHtml2Wiki extends SpecialPage {
             if ($_FILES['userfile']['size'] > $wgMaxUploadSize['*']) {
                 throw new RuntimeException('Exceeded filesize limit defined as ' . $wgMaxUploadSize['*'] . '.');
             }
-            /*
-              // DO NOT TRUST $_FILES['userfile']['type'] VALUE !!
-              // Check MIME Type by yourself.
-             * except that we don't even care what is supplied by the client
-             * We're going to process the files
-              $finfo = new finfo(FILEINFO_MIME_TYPE);
-              if (false === $ext = array_search(
-              $finfo->file($_FILES['userfile']['tmp_name']),
-              array(
-              'text/html'
-              ),
-              true
-              )) {
-              throw new RuntimeException('Invalid file format.');
-              }
-             */
+
+            // do not trust $_FILES['userfile']['type'] 
+            $this->mMimeType = self::getMimeType($_FILES['userfile']['tmp_name']);
+            if (false === $this->mMimeType) {
+                throw new RuntimeException( 'Invalid file format.' . $this->mMimeType );
+            }
+
             // You should name it uniquely.
             // DO NOT USE $_FILES['userfile']['name'] WITHOUT ANY VALIDATION !!
             // On this example, obtain safe unique name from its binary data.
@@ -313,7 +361,7 @@ class SpecialHtml2Wiki extends SpecialPage {
         //$this->mFile = $_FILES['userfile']['tmp_name'];
         $this->mFilename = $_FILES['userfile']['name'];
         $this->mContentRaw = $this->mContent = file_get_contents($_FILES['userfile']['tmp_name']);
-        $this->mFilesize = $_FILES['userfile']['size'];
+        $this->mFileSize = $_FILES['userfile']['size'];
         return true;
     }
 
@@ -328,10 +376,13 @@ class SpecialHtml2Wiki extends SpecialPage {
         $this->mFile = $file;
         $this->mFilename = basename($file);
         $this->mContentRaw = file_get_contents($file);
-        $this->mFilesize = filesize($file);
+        $this->mFileSize = filesize($file);
         return true;
     }
 
+    function formatValue ($value) {
+        return htmlspecialchars( $this->getLanguage()->formatSize( $value ) );
+    }
     /**
      * Not sure when we'll use this, but the intent was to create
      * an ajax interface to manipulate the file like wikEd
@@ -374,7 +425,13 @@ class SpecialHtml2Wiki extends SpecialPage {
     private function listFile() {
         $out = $this->getOutput();
         $out->addModules(array('ext.Html2Wiki')); // add our javascript and css
-        $out->addHTML('<ul class="mw-ext-Html2Wiki"><li>' . $this->mFilename . '</li></ul>');
+        $size = $this->formatValue($this->mFileSize);
+        $out->addHTML(<<<HERE
+                <ul class="mw-ext-Html2Wiki">
+                    <li>{$this->mFilename} ({$size}) {$this->mMimeType}</li>
+                </ul>
+HERE
+                );
     }
 
     /** Don't really need this because we're doing it with Tidy
@@ -442,7 +499,8 @@ class SpecialHtml2Wiki extends SpecialPage {
             // if($this->doLocalFile("/vagrant/mediawiki/extensions/Html2Wiki/data/uvm-1.1d/docs/html/files/base/uvm_printer-svh.html")) {
             // if($this->doLocalFile("/vagrant/mediawiki/extensions/Html2Wiki/data/docs/htmldocs/mgc_html_help/overview04.html")) {
             $this->listFile();
-
+            // fix the anchors
+            $this->queryParse();
             $this->tidyup($tidyOpts);
             $this->cleanUVMFile();
             $this->substituteTemplates();
@@ -572,10 +630,19 @@ class SpecialHtml2Wiki extends SpecialPage {
 				</tr>
 				<tr>
 					<td class='mw-label'>" .
+                    Xml::label($this->msg('html2wiki-collection-name')->text(), 'mw-collection-name') .
+                    "</td>
+					<td class='mw-input'>" .
+                    Xml::input('collection-name', 50, ( $this->sourceName == 'upload' ? $this->mCollectionName : ''), // value
+                            array('id' => 'mw-collection-name', 'type' => 'text')) . ' ' . // attribs
+                    "</td>
+				</tr>
+				<tr>
+					<td class='mw-label'>" .
                     Xml::label($this->msg('import-comment')->text(), 'mw-import-comment') .
                     "</td>
 					<td class='mw-input'>" .
-                    Xml::input('log-comment', 50, ( $this->sourceName == 'upload' ? $this->logcomment : ''), // value
+                    Xml::input('log-comment', 50, ( $this->sourceName == 'upload' ? $this->mComment : ''), // value
                             array('id' => 'mw-import-comment', 'type' => 'text')) . ' ' . // attribs
                     "</td>
 				</tr>
@@ -677,6 +744,30 @@ class SpecialHtml2Wiki extends SpecialPage {
         return true;
     }
 
+    /**
+     * Doing this with xPath http://schlitt.info/opensource/blog/0704_xpath.html 
+     * is like so
+     * $nodes = $xpath->query('//a/@href');
+       foreach($nodes as $href) {
+          echo $href->nodeValue;                       // echo current attribute value
+          $href->nodeValue = 'new value';              // set new attribute value
+          $href->parentNode->removeAttribute('href');  // remove attribute
+        }
+     */
+    public function queryParse() {
+        $out = qp( $this->mContent, 'body')->find("a");
+        foreach( $out as $anchor ) {
+            $href = $anchor->attr('href');
+            if( substr( $href, 0, 1 ) == '#' ) {
+                // leave intra document links alone
+            } else {
+            $anchor->attr( 'href', str_replace( '../../', "/", $href ) ); // go to the root if we're two layers deep
+            }
+            // print( $anchor->attr('href') . "<br />" . PHP_EOL );
+        }
+        $this->mContent = $out->text();
+    }
+    
     public function cleanUVMFile() {
         // delete content tags
         $reHead = "#<head>.*?</head>#is";
@@ -701,6 +792,10 @@ class SpecialHtml2Wiki extends SpecialPage {
         $this->mContent = preg_replace($reComment, '', $this->mContent);
         // keep this last, because there will be a lot of blank lines generated
         $this->mContent = preg_replace($reBlankLine, '', $this->mContent);
+        /*
+        $mouseAnchors = '#<a (?:name|href)=[^>]*?(?:onMouseOver|onMouseOut)[^>]*?>(.*?)</a>#ms';
+        $this->mContent = preg_replace($mouseAnchors, "$1", $this->mContent);
+        */
     }
 
     /**
@@ -751,6 +846,19 @@ class SpecialHtml2Wiki extends SpecialPage {
             '<div class="HideBody" id="HideBody">&nbsp;</div>'
         );
         $this->mContent = str_ireplace($myNeedles, '', $this->mContent);
+    }
+    
+    /**
+     * We need to eliminate or replace mouseover links because they cause problems with 
+     * DOM manipipluation as libxml can NOT read this content... it seems that Tidy 
+     * leaves multiple IDs in place, or just that libxml auto-assigns ids to named elements
+     * 
+     * Function currently unused. We can do this with QueryParse
+     */
+    public function preProcess() {
+        // <a href="#uvm_line_printer" id=link6 onMouseOver="ShowTip(event, 'tt5', 'link6')" onMouseOut="HideTip('tt5')">
+        $mouseAnchors = '#< href=[^>]*??(onMouseOver|onMouseOut)[^>]*?(.*?)</a>#ms';
+        $this->mContent = preg_replace($mouseAnchors, $this->mContent);
     }
 
     
