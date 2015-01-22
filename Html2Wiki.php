@@ -80,11 +80,17 @@ $wgExtensionCredits['other'][] = array(
 );
 
 /* Setup */
-
+define( 'HTML2WIKI_VERSION', '0.1' );
 // Register files
 $dir = __DIR__;
 $wgAutoloadClasses['Html2WikiHooks'] = "$dir/Html2Wiki.hooks.php";
 $wgAutoloadClasses['SpecialHtml2Wiki'] = "$dir/specials/SpecialHtml2Wiki.php";
+// $wgAutoloadClasses['QueryPath'] = "$dir/vendor/querypath/src/QueryPath/qp.php";
+// add in anything we installed with composer in our extension directory.
+// once our extension is managed by composer, we can just add the requirements there.
+if (file_exists( "$dir/vendor/autoload.php" ) ) {
+    require_once "$dir/vendor/autoload.php";
+}
 
 $wgMessagesDirs['Html2Wiki'] = "$dir/i18n";
 $wgExtensionMessagesFiles['Html2WikiAlias'] = "$dir/Html2Wiki.i18n.alias.php";
