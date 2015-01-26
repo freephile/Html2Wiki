@@ -11,57 +11,102 @@
  * @todo implement style guide https://www.mediawiki.org/wiki/Design/Living_style_guide
  */
 class SpecialHtml2Wiki extends SpecialPage {
+    
+    /** @var array of original file upload attributes
+     * [filename]
+     * [mimetype]
+     * [filesize]
+     * []
+     * 
+     */
+    private $mOriginal;
 
     /** @var string The HTML we want to turn into wiki text */
     private $mContent;
     private $mContentRaw;  // the exact contents which were uploaded
     private $mContentTidy; // Raw afer it's passed through tidy
-    private $mFile;        // The (input) HTML file
+    private $mLocalFile;   // unused except in doLocalFile()
     /** @var string The (original) name of the uploaded file */
-    private $mFilename;
+    private $mFilename; // supplied
+    public $mArticleTitle; // created by mArticleSavePath and mFilename or unWrap
 
     /** @var int The size, in bytes, of the uploaded file. */
-    private $mFileSize;
+    private $mFilesize;
     private $mSummary;
     private $mIsTidy;      // @var bool true once passed through tidy
     private $mTidyErrors;  // the error output of tidy
     private $mTidyConfig;  // the configuration we want to use for tidy.
-    
     private $mMimeType;  // the detected or inferred mime-type of the upload
-    
     private $mDataDir; // where we want to temporarily store and retrieve data from
-    private $mCollectionName; // the user-supplied name for the collection we're importing e.g. UVM-1.1d
+    /** name for the collection we're importing e.g. UVM-1.1d
+     *
+     * @var string a specific identifier for a set of documents imported into 
+     * the wiki.  Gathered from the form, if the value has any slashes in it
+     * then Collection name is the first element and the full supplied value is 
+     * used as $mArticleSavePath
+     */
+    private $mCollectionName;
+    protected $mArticleSavePath;
+    public $mIsVIP; // we're purpose built to detect and handle two types of zipped content
+    public $mIsUVM;
+    public $mImages;  // an array of image files that should be imported
 
-	/* Protected Static Members */
+    /* Protected Static Members */
 
-	/** @var array List of common image files extensions and MIME-types
+    /** @var array List of common image files extensions and MIME-types
      * and HTML MIME-type 
      * as well as the compressed archive types we will allow
      */
-	protected static $mimeTypes = array(
-        'gif'  => 'image/gif',
-        'jpe'  => 'image/jpeg',
+    protected static $mimeTypes = array(
+        'gif' => 'image/gif',
+        'jpe' => 'image/jpeg',
         'jpeg' => 'image/jpeg',
-        'jpg'  => 'image/jpeg',
-        'png'  => 'image/png',
-        'tif'  => 'image/tiff',
+        'jpg' => 'image/jpeg',
+        'png' => 'image/png',
+        'tif' => 'image/tiff',
         'tiff' => 'image/tiff',
-        'xbm'  => 'image/x-xbitmap',
-        'svg'  => 'image/svg+xml',
+        'xbm' => 'image/x-xbitmap',
+        'svg' => 'image/svg+xml',
         // compression only files, disallow
         //'tar' => 'application/x-tar',
         //'bz2' => 'application/x-bzip2', // bzip2
         //'gz'  => 'application/x-gzip',
         // HTML content
-        'htm'   => 'text/html',
-        'html'  => 'text/html',
+        'htm' => 'text/html',
+        'html' => 'text/html',
         // archives
-        'gz'     => 'application/x-gzip',
-        'gzip'   => 'application/x-gzip',
+        'gz' => 'application/x-gzip',
+        'gzip' => 'application/x-gzip',
         'tar.gz' => 'application/x-gtar',
-        'tgz'    => 'application/x-gtar',
-        'zip'    => 'application/zip',
-	);
+        'tgz' => 'application/x-gtar',
+        'zip' => 'application/zip',
+    );
+
+    /** @var array List of common Tidy options that we want to use in order
+     * to clean up incoming HTML
+     */
+    protected static $tidyOpts = array(
+        "drop-empty-paras" => 1,
+        "drop-font-tags" => 1,
+        "enclose-block-text" => 1,
+        "enclose-text" => 1,
+        "fix-backslash" => 1,
+        "fix-bad-comments" => 1,
+        "fix-uri" => 1,
+        "hide-comments" => 1,
+        "merge-divs" => 1,
+        "merge-spans" => 1,
+        "repeated-attributes" => "keep-first",
+        "show-body-only" => 1,
+        "show-errors" => 0,
+        "show-warnings" => 0,
+        "indent" => 0,
+        "wrap" => 120,
+        "tidy-mark" => 0,
+        "write-back" => 0
+    );
+
+
 
     /** @todo review and cull the properties that we use here
      * These properties were copied from Special:Upload assuming they'd be 
@@ -74,9 +119,6 @@ class SpecialHtml2Wiki extends SpecialPage {
 
     /** @var UploadBase */
     public $mUpload;
-
-    /** @var LocalFile */
-    public $mLocalFile;
     public $mUploadClicked;
 
     /** User input variables from the "description" section * */
@@ -115,33 +157,58 @@ class SpecialHtml2Wiki extends SpecialPage {
         //$commentDefault = wfMessage( 'html2wiki-comment' )->inContentLanguage()->plain();
         $commentDefault = wfMessage('html2wiki-comment')->inContentLanguage()->parse();
         $this->mComment = $request->getText('log-comment', $commentDefault);
+
+
+        $requestedCollectionName = $request->getText('collection-name');
+        if (!empty($requestedCollectionName)) {
+            if (strlen($requestedCollectionName) < 2) {
+                $this->showForm("Invalid Collection Name; must be greater than a single character");
+            }
+            if (stristr($requestedCollectionName, '/')) {
+                $this->mArticleSavePath = (string) $requestedCollectionName;
+                $parts = explode('/', $requestedCollectionName);
+                $this->mCollectionName = $parts[0];
+            } else {
+                $this->mCollectionName = (string) $requestedCollectionName;
+            }
+        } else {
+            $this->mArticleTitle = $this->mFilename = $_FILES['userfile']['name'];
+        }
     }
 
-	/**
-	 * @param $file string
-	 * @return bool|string
-	 */
-	public static function getMimeType( $file ) {
-		$realpath = realpath( $file );
-		if (
-			$realpath
-			&& function_exists( 'finfo_file' )
-			&& function_exists( 'finfo_open' )
-			&& defined( 'FILEINFO_MIME_TYPE' )
-		) {
-			$ext = finfo_file( finfo_open( FILEINFO_MIME_TYPE ), $realpath );
+    public static function getTidyOpts() {
+        return self::$tidyOpts;
+    }
+
+    /**
+     * You can get the mimetype of an arbitrary file in bash with 
+     * file --mime-type $file
+     * 
+     * @param $file string
+     * @return bool|string
+     */
+    public static function getMimeType($file) {
+        $realpath = realpath($file);
+        if (
+                $realpath && function_exists('finfo_file') && function_exists('finfo_open') && defined('FILEINFO_MIME_TYPE')
+        ) {
+            $mimeType = finfo_file(finfo_open(FILEINFO_MIME_TYPE), $realpath);
+            if (array_search($mimeType, self::$mimeTypes)) {
+                return $mimeType;
+            } else {
+                return false; // not allowed type
+            }
         } else {
             // Infer the MIME-type from the file extension
-		    $ext = strtolower( pathinfo( $file, PATHINFO_EXTENSION ) );
+            $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+            if (isset(self::$mimeTypes[$ext])) {
+                return self::$mimeTypes[$ext];
+            }
         }
+        // neither approach worked, or mimeType not allowed
+        return false;
+    }
 
-		if ( isset( self::$mimeTypes[$ext] ) ) {
-			return self::$mimeTypes[$ext];
-		}
-
-		return false;
-	}
-    
     /**
      * Initialize instance variables from request and create an Upload handler
      * @todo review and cull the methods that we use here
@@ -285,22 +352,27 @@ class SpecialHtml2Wiki extends SpecialPage {
     }
 
     /**
-     * Upload user nominated file
-     * Populate $this->mContent and $this->mFilename
-     * Should probably also populate size type and mimetype
+     * Upload user nominated file.
+     * 
+     * The user may nominate either a single HTML file, or a zip/tar archive of
+     * HTML and images etc.
+     * 
+     * Since we don't know which, we'll check the mimetype, and then either 
+     * process a single file, or else unwrap the archive and process each entry
+     * Populate 
+     * $mFilename
+     * $mMimeType
+     * $mFilesize
      */
     private function doUpload() {
         $out = $this->getOutput();
-//        global $wgMaxUploadSize; // this is the old way
-        $wgMaxUploadSize = $this->getConfig()->get('MaxUploadSize');
+        global $wgMaxUploadSize;
         try {
-            // Undefined | Multiple Files | $_FILES Corruption Attack
-            // If this request falls under any of them, treat it invalid.
             if (
                     !isset($_FILES['userfile']['error']) ||
                     is_array($_FILES['userfile']['error'])
             ) {
-                throw new RuntimeException('Invalid parameters.');
+                throw new RuntimeException('Multiple or missing error during upload.');
             }
             // Check $_FILES['userfile']['error'] value.
             switch ($_FILES['userfile']['error']) {
@@ -321,13 +393,13 @@ class SpecialHtml2Wiki extends SpecialPage {
             }
             // You should also check filesize here. 
             if ($_FILES['userfile']['size'] > $wgMaxUploadSize['*']) {
-                throw new RuntimeException('Exceeded filesize limit defined as ' . $wgMaxUploadSize['*'] . '.');
+                throw new RuntimeException('Exceeded filesize limit, check $wgMaxUploadSize[\'*\'].');
             }
 
-            // do not trust $_FILES['userfile']['type'] 
-            $this->mMimeType = self::getMimeType($_FILES['userfile']['tmp_name']);
+            // we do not trust $_FILES['userfile']['type'] 
+            $this->mMimeType = $this->mOriginal['mimetype'] =  self::getMimeType($_FILES['userfile']['tmp_name']);
             if (false === $this->mMimeType) {
-                throw new RuntimeException( 'Invalid file format.' . $this->mMimeType );
+                throw new RuntimeException('Invalid file format.');
             }
 
             // You should name it uniquely.
@@ -349,7 +421,7 @@ class SpecialHtml2Wiki extends SpecialPage {
               }
              */
             if (!is_uploaded_file($_FILES['userfile']['tmp_name'])) {
-                throw new RuntimeException('Possible file upload attack.');
+                throw new RuntimeException('There was a failure in the file upload');
             }
         } catch (RuntimeException $e) {
             $out->wrapWikiMsg(
@@ -357,14 +429,41 @@ class SpecialHtml2Wiki extends SpecialPage {
             );
             return false;
         }
-        // Don't do this because the file goes away
+        // Don't assign the tmp_name to another variable because the file goes away
         //$this->mFile = $_FILES['userfile']['tmp_name'];
-        $this->mFilename = $_FILES['userfile']['name'];
-        $this->mContentRaw = $this->mContent = file_get_contents($_FILES['userfile']['tmp_name']);
-        $this->mFileSize = $_FILES['userfile']['size'];
+        $this->mFilename = $this->mOriginal['filename'] =  $_FILES['userfile']['name'];
+        $this->mFilesize = $this->mOriginal['filesize'] = $_FILES['userfile']['size'];
+
+        switch ($this->mMimeType) {
+            case 'application/x-gzip':
+            case 'application/x-gtar':
+            case 'application/zip':
+                // unwrap the file
+                $this->unwrapZipFile();
+                break;
+
+            case 'text/html':
+                //process single file
+                $this->processFile();
+                break;
+
+            default:
+                return false;
+                break;
+        }
+        // we know about all the images that are referenced, make sure they are
+        // in the wiki
+        $this->processImages();
         return true;
     }
 
+    
+    /**
+     * This method was used in testing/development to work on a file that is local
+     * to the server.  We could re-implement this if working on local files is desired
+     * @param type $file
+     * @return boolean
+     */
     private function doLocalFile($file) {
         $out = $this->getOutput();
         if (!file_exists($file)) {
@@ -373,16 +472,116 @@ class SpecialHtml2Wiki extends SpecialPage {
             );
             return false;
         }
-        $this->mFile = $file;
+        $this->mLocalFile = $file;
         $this->mFilename = basename($file);
         $this->mContentRaw = file_get_contents($file);
-        $this->mFileSize = filesize($file);
+        $this->mFilesize = filesize($file);
         return true;
     }
 
-    function formatValue ($value) {
-        return htmlspecialchars( $this->getLanguage()->formatSize( $value ) );
+    /**
+     * During the upload process, we detect the mimetype, and if it's an archive
+     * we work with the contents of the archive, processing each entry.
+     * We have to loop through the archive twice... 
+     * On the first pass we detect the "brand" of archive.
+     * The brand is currently one of 'VIP' or 'UVM' which are collections we
+     * are familiar with.
+     * Based on the brand, we build up a list of HTML files and image files that
+     * match our expectations.
+     * On the second pass, we process each entry (filtered by the first pass).
+     */
+    private function unwrapZipFile() {
+        $this->IsVIP = false;
+        $this->IsUVM = false;
+        $out = $this->getOutput();
+        $zipfile = $_FILES['userfile']['tmp_name'];
+        // $zipfile = __DIR__ . '/data/vip-info-hub-docs-for-wiki-import.zip';
+        // $zipfile = realpath($zipfile);
+// The "Questa Verification IP User Guide" -> "Retargeting a Normal Sequence Item" (./docs/htmldocs/questa_vip_user/advanced_topics07.html)
+// content file references the ./docs/htmldocs/questa_vip_user/images/message_sequence_chart__normal_mvc_sequence.jpg image.
+        $eoi = 'docs/htmldocs/questa_vip_user/advanced_topics07.html';
+
+        $availableFiles = array();
+        $availableImages = array();
+
+        // we need to loop through twice, once to determine if this zip matches expectations (and build a bill of laden)
+        $zipHandle = zip_open($zipfile);
+        if (is_resource($zipHandle)) {
+            while ($zip_entry = zip_read($zipHandle)) {
+                $entry = zip_entry_name($zip_entry);
+                switch ($entry) {
+
+                    // The html/ folder adds almost 1,000% more files
+                    // case ( preg_match('#(?:htmldocs|html)/.*\.html?$#i', $entry)? $entry : '' ): #10,865
+                    case ( preg_match('#htmldocs/.*\.html?$#i', $entry) ? $entry : '' ): #1,112
+                        $availableFiles[] = $entry;
+                        break;
+
+                    // The html/ folder adds 40% more images
+                    // case ( preg_match('#(?:htmldocs|html)/.*/images/.*\.(?:jpe?g|png|gif)$#i', $entry)? $entry : '' ): #715
+                    case ( preg_match('#htmldocs/.*/images/.*\.(?:jpe?g|png|gif)$#i', $entry) ? $entry : '' ):  #511
+                        $availableImages[] = $entry;
+                        break;
+
+                    case 'docs/htmldocs/':
+                        $this->mIsVIP = true;
+                        break;
+
+                    default:
+                        // if a simple print doesn't work, then your switch has bad syntax
+                        // print "$entry\n";
+                        break;
+                }
+            }
+            zip_close($zipHandle);
+        }
+        if ($this->mIsVIP) {
+            // echo "Now we're processing a VIP Info Hubs zip\n";
+            $zipHandle = zip_open($zipfile);
+            if (is_resource($zipHandle)) {
+                while ($zip_entry = zip_read($zipHandle)) {
+                    $entry = zip_entry_name($zip_entry);
+                    if (in_array($entry, $availableFiles) && $entry == $eoi) {
+                        /*
+                        $out->addHTML('<div>Processing<br /><pre>' .
+                                "Name:               " . zip_entry_name($zip_entry) . "\n" . // docs/htmldocs/questa_vip_user/advanced_topics07.html
+                                "Actual Filesize:    " . zip_entry_filesize($zip_entry) . "\n" );
+                        if (zip_entry_open($zipHandle, $zip_entry, "r")) {
+                            $out->addHTML("File Contents:\n");
+                            $buf = zip_entry_read($zip_entry, zip_entry_filesize($zip_entry));
+                            $out->addHtml("$buf\n");
+                            zip_entry_close($zip_entry);
+                        }
+                        $out->addHTML('</pre></div>');
+                         * 
+                         */
+                        // $this->mFilesize = zip_entry_filesize($zip_entry);
+                        $this->mFilename = zip_entry_name($zip_entry);
+                        if ($this->mCollectionName) {
+                          $this->mFilename = "$this->mCollectionName/$this->mFilename";
+                        } 
+                        if (zip_entry_open($zipHandle, $zip_entry, "r")) {
+                            $this->mContent = $this->mContentRaw = 
+                                    zip_entry_read($zip_entry, zip_entry_filesize($zip_entry));
+                            zip_entry_close($zip_entry);
+                        }
+                        $this->processFile();
+                    }
+                }
+                zip_close($zipHandle);
+            }
+        } else {
+            $out->addHTML('<div><pre>');
+            $out->addHTML('not VIP');
+            $out->addHTML(print_r($availableFiles, true));
+            $out->addHTML('</pre></div>');
+        }
     }
+
+    function formatValue($value) {
+        return htmlspecialchars($this->getLanguage()->formatSize($value));
+    }
+
     /**
      * Not sure when we'll use this, but the intent was to create
      * an ajax interface to manipulate the file like wikEd
@@ -422,16 +621,21 @@ class SpecialHtml2Wiki extends SpecialPage {
         }
     }
 
+    private function showResults() {
+        $out = $this->getOutput();
+        $out->addHTML('<div id="h2wContent">' . $this->mResults . '</div>');
+    }
+
     private function listFile() {
         $out = $this->getOutput();
         $out->addModules(array('ext.Html2Wiki')); // add our javascript and css
-        $size = $this->formatValue($this->mFileSize);
+        $size = $this->formatValue($this->mFilesize);
         $out->addHTML(<<<HERE
                 <ul class="mw-ext-Html2Wiki">
                     <li>{$this->mFilename} ({$size}) {$this->mMimeType}</li>
                 </ul>
 HERE
-                );
+        );
     }
 
     /** Don't really need this because we're doing it with Tidy
@@ -468,61 +672,111 @@ HERE
         global $wgOut;
         $wgOut->addModules('ext.Html2Wiki');
 
-        // We'll need to send the form input to parse.js
-        // and the response/output will be wikitext.
-        // We'll either be able to insert that programmatically
-        // or use OutputPage->addWikiText() to make it appear in the page output for initial testing
-
-        $tidyOpts = array(
-            "drop-empty-paras" => 1,
-            "drop-font-tags" => 1,
-            "enclose-block-text" => 1,
-            "enclose-text" => 1,
-            "fix-backslash" => 1,
-            "fix-bad-comments" => 1,
-            "fix-uri" => 1,
-            "hide-comments" => 1,
-            "merge-divs" => 1,
-            "merge-spans" => 1,
-            "repeated-attributes" => "keep-first",
-            "show-body-only" => 1,
-            "show-errors" => 0,
-            "show-warnings" => 0,
-            "indent" => 0,
-            "wrap" => 120,
-            "tidy-mark" => 0,
-            "write-back" => 0
-        );
-
-
         if ($this->doUpload()) {
             // if($this->doLocalFile("/vagrant/mediawiki/extensions/Html2Wiki/data/uvm-1.1d/docs/html/files/base/uvm_printer-svh.html")) {
             // if($this->doLocalFile("/vagrant/mediawiki/extensions/Html2Wiki/data/docs/htmldocs/mgc_html_help/overview04.html")) {
-            $this->listFile();
-            // fix the anchors
-            $this->queryParse();
-            $this->tidyup($tidyOpts);
-            $this->cleanUVMFile();
-            $this->substituteTemplates();
-            $this->eliminateCruft();
-            $this->panDoc2Wiki();
-            $this->autoCategorize();
-            // $this->showRaw();
-            // $this->showContent();
-            $this->saveArticle();
-           // self::saveCat($this->mFilename, 'Html2Wiki Imports');
+            $this->showResults();
         } else {
             $this->showForm();
         }
         return true;
     }
 
+    private function processFile() {
+        // when only a single file is uploaded, we can populate content from tmp_name
+        if ($this->mOriginal['mimetype'] == 'text/html') {
+            $this->mContent = $this->mContentRaw = file_get_contents($_FILES['userfile']['tmp_name']);
+        }
+        // Tidy now works on mContent even when in fallback mode for MediaWiki-Vagrant
+        $this->tidyup(self::getTidyOpts());
+        // mArticleSavePath will be empty on a zip upload so this is 
+        // all for single files
+        if ($this->mArticleSavePath) {
+            $parents = explode($this->mArticleSavePath);
+            $parent = array_pop($parents);
+            while ($parent !== null) {
+                $this->qpAddParentToLink($parent);
+                $parent = array_pop($parents);
+            }
+            $this->mArticleTitle = $this->mArticleSavePath . $this->mFilename;
+        }
+        // CleanLinks is a stronger version of RemoveMouseOvers
+        $this->qpCleanLinks();
+        
+        $this->cleanUVMFile();
+        
+        $this->eliminateCruft();
+        // example of using a static method that would be available without
+        // an Html2Wiki object (outside the class)
+        $this->mContent = self::qpItalics($this->mContent, 'span.cItalic' );
+        // functional
+        // $this->qpItalics('span.cItalic');
+        // panDoc apparently lets double single quotes ''italics'' pass through
+        $this->panDoc2Wiki();
+        $this->qpRewriteImages();
+        $this->substituteTemplates();
+        $this->autoCategorize();
+        // $this->showRaw();
+        $this->showContent();
+        // $this->saveArticle();
+        // self::saveCat($this->mFilename, 'Html2Wiki Imports');
+
+
+        return true;
+    }
+    
+    /**
+     * afer processing (all) file(s), we have a list of images to import
+     */
+    public function processImages() {
+        global $wgH2WProcessImages;
+        if ( $wgH2WProcessImages === false ) {
+            return true;
+        }
+        $images = $this->mImages;
+        
+        $out = $this->getOutput();
+        $user = $this->getUser();
+        $token = $user->getEditToken();
+        foreach ($images as $image) {
+            $title = $image['title']->makeTitle(NS_FILE);        
+            $existing = $title->exists();
+            $actionverb = $existing ? 'edited' : 'created';
+            $action = 'edit';
+            $api = new ApiMain(
+                    new DerivativeRequest(
+                    $this->getRequest(), // Fallback upon $wgRequest if you can't access context
+                    array(
+                'action' => $action,
+                'title' => $title,
+                        // can we even use 'text' in a file edit action
+                'text' => $image['text'], // can only use one of 'text' or 'appendtext'
+                'summary' => $image['text'],
+                'notminor' => true,
+                'token' => $token
+                    ), true // was posted?
+                    ), true // enable write?
+            );
+            $api->execute(); // actually save the article.
+            // @todo convert this to a message with parameters to go in en.json
+            $out->addWikiText('<div class="success">' . $title . ' was ' . $actionverb . '. See [[' . $title . ']]</div>');
+            $logEntry = new ManualLogEntry('html2wiki', 'import'); // Log action 'import' in the Special:Log for 'html2wiki'
+            $logEntry->setPerformer($user); // User object, the user who performed this action
+            $logEntry->setTarget($title); // The page that this log entry affects, a Title object
+            $logEntry->setComment($this->mComment);
+            $logid = $logEntry->insert();
+            // optionally publish the log item to recent changes
+            // $logEntry->publish( $logid );
+
+        }
+    }
+
     private function makeTitle($namespace = NS_MAIN) {
-        $desiredTitleObj = Title::makeTitleSafe($namespace, $this->mFilename);
+        $desiredTitleObj = Title::makeTitleSafe($namespace, $this->mArticleTitle);
         if (!is_null($desiredTitleObj)) {
             return $desiredTitleObj;
         } else {
-            die($this->mFilename . " is an invalid filename");
+            die($this->mArticleTitle . " is an invalid filename");
         }
     }
 
@@ -536,17 +790,17 @@ HERE
         $action = 'edit';
         $api = new ApiMain(
                 new DerivativeRequest(
-                    $this->getRequest(), // Fallback upon $wgRequest if you can't access context
-                    array(
-                        'action' => $action,
-                        'title' => $title,
-                        'text' => $this->mContent, // can only use one of 'text' or 'appendtext'
-                        'summary' => $this->mComment,
-                        'notminor' => true,
-                        'token' => $token
-                    ), true // was posted?
+                $this->getRequest(), // Fallback upon $wgRequest if you can't access context
+                array(
+            'action' => $action,
+            'title' => $title,
+            'text' => $this->mContent, // can only use one of 'text' or 'appendtext'
+            'summary' => $this->mComment,
+            'notminor' => true,
+            'token' => $token
+                ), true // was posted?
                 ), true // enable write?
-            );
+        );
         $api->execute(); // actually save the article.
         // @todo convert this to a message with parameters to go in en.json
         $out->addWikiText('<div class="success">' . $title . ' was ' . $actionverb . '. See [[' . $title . ']]</div>');
@@ -703,6 +957,13 @@ HERE
      * @todo figure out if we need to use "force" option in Tidy?
      */
     public function tidyup($tidyConfig = NULL) {
+        if ($this->mMimeType !== 'text/html') {
+            // @todo wrap this in a wiki message
+            echo "wrong type of file for Tidy\n";
+            $this->isTidy = false;
+            return false;
+        }
+
         $this->mTidyConfig = realpath(__DIR__ . "/../tidy.conf");
         if (is_null($tidyConfig)) {
             $tidyConfig = $this->mTidyConfig;
@@ -732,11 +993,8 @@ HERE
             // also, $this->mTidyErrors will never populate unless we explicitly 
             // trap STDERR
             // 2>&1 1> /dev/null
-            $cmd = "$tidy -quiet -indent -ashtml $shellConfig {$_FILES['userfile']['tmp_name']}";
+            $cmd = "$tidy -quiet -indent -ashtml $shellConfig <<<$this->mContent";
             $escaped_command = escapeshellcmd($cmd);
-            if (!is_readable($_FILES['userfile']['tmp_name'])) {
-                echo "Tidy's target not found, or not readable\n";
-            }
             //echo "executing $escaped_command";
             $this->mContentTidy = $this->mContent = shell_exec($escaped_command);
         }
@@ -745,29 +1003,173 @@ HERE
     }
 
     /**
-     * Doing this with xPath http://schlitt.info/opensource/blog/0704_xpath.html 
+     * Using the QueryPath library to manipulate our source document.
+     * 
+     * QueryPath is a jQuery-like library for working with XML and HTML 
+     * documents in PHP.
+     * 
+     * Doing this with xPath directly like explained at
+     * http://schlitt.info/opensource/blog/0704_xpath.html 
      * is like so
      * $nodes = $xpath->query('//a/@href');
-       foreach($nodes as $href) {
-          echo $href->nodeValue;                       // echo current attribute value
-          $href->nodeValue = 'new value';              // set new attribute value
-          $href->parentNode->removeAttribute('href');  // remove attribute
-        }
+      foreach($nodes as $href) {
+      echo $href->nodeValue;                       // echo current attribute value
+      $href->nodeValue = 'new value';              // set new attribute value
+      $href->parentNode->removeAttribute('href');  // remove attribute
+      }
+     * but QueryPath offers a CSS parser to more easily specify document objects
+     * 
+     * This function "fixes" relative links so that we know the full path of 
+     * document links and image links.  This way we can rewrite them properly.
+     * 
+     * This function is not recursive, so it will need to be called successively
+     * for each time an attribute contains '../'
      */
-    public function queryParse() {
-        $out = qp( $this->mContent, 'body')->find("a");
-        foreach( $out as $anchor ) {
+    public function qpAddParentToLink($parent) {
+        $qp = qp($this->mContent);
+        $anchors = $qp->find("a");
+        foreach ($anchors as $anchor) {
             $href = $anchor->attr('href');
-            if( substr( $href, 0, 1 ) == '#' ) {
+            if (substr($href, 0, 1) == '#') {
                 // leave intra document links alone
             } else {
-            $anchor->attr( 'href', str_replace( '../../', "/", $href ) ); // go to the root if we're two layers deep
+                $anchor->attr('href', preg_replace('#\.\./([^.]*)#', "$parent/$1", $href));
             }
             // print( $anchor->attr('href') . "<br />" . PHP_EOL );
         }
-        $this->mContent = $out->text();
+        // now go back to the top and fix relative image sources
+        $ea = $qp->top()->find('img');
+        foreach ($ea as $image) {
+            $src = $image->attr('src');
+            $image->attr( 'src', preg_replace('#\.\./([^.]*)#', "$parent/$1", $src) ); 
+         }
+        $qp->top();
+        ob_start();
+        $qp->writeHTML();
+        $this->mContent = ob_get_clean();
     }
     
+    /**
+     * Provide a selector to transform HTML to wiki text markup for italics 
+     * e.g. <div class="foo">something</div>  ----->  ''something''
+     * 
+     * Html2Wiki::qpItalics("div.foo");
+     */
+
+    public static function qpItalics($content, $selector = NULL, $options = array('ignore_parser_warnings'=> true) ) {
+        $qp = htmlqp($content, $selector, $options);
+        $items = $qp->find($selector);
+        foreach ($items as $item) {
+            $text = $item->text();
+            $newtag = "''$text''";
+            $item->replaceWith($newtag);
+        }
+        $qp->top();
+        ob_start();
+        $qp->writeHTML();
+        $return = ob_get_clean();
+        return $return;
+    }
+   
+    
+    /**
+     * Provide a selector to transform HTML to wiki text markup for italics 
+     * e.g. <div class="foo">something</div>  ----->  ''something''
+     * 
+     * Html2Wiki::qpItalics("div.foo");
+
+    public function qpItalics($selector = NULL) {
+        $qp = htmlqp($this->mContent);
+        $items = $qp->find($selector);
+        foreach ($items as $item) {
+            $text = $item->text();
+            $newtag = "''$text''";
+            $item->replaceWith($newtag);
+        }
+        $qp->top();
+        ob_start();
+        $qp->writeHTML();
+        $this->mContent = ob_get_clean();
+}
+     */
+    
+    
+    /**
+     * Remove all attributes on anchor tags except for the href
+     */
+    public function qpCleanLinks () {
+        $options = array('ignore_parser_warnings'=> true);
+        $qp = htmlqp($this->mContent, null, $options);
+        // first ditch all the other attributes of true anchor tags
+        $anchors = $qp->find('a:link');
+        foreach ($anchors as $anchor) {
+            $href = $anchor->attr('href');
+            $linktext = $anchor->text();
+            $newtag = "<a href=\"$href\">$linktext</a>";
+            $anchor->replaceWith($newtag);
+        }
+        // now go back to the top and ditch empty anchors
+        $ea = $qp->top()->find('a');
+        foreach ($ea as $anchor) {
+            if ($anchor->hasAttr('href')) {
+                if (substr($href, 0, 1) == '#') {
+                    $anchor->remove(); // remove intra-document links
+                }
+            } else { 
+                // no href, it's a target
+                // remove all id'd anchor targets
+                $anchor->remove();
+            }
+         }
+         $qp->top();
+         ob_start();
+         $qp->writeHTML();
+         $this->mContent = ob_get_clean();
+    }
+    
+    public function qpRemoveMouseOvers() {
+        $qp = qp($this->mContent, 'body')->find("a:link");
+        foreach ($qp as $anchor) {
+            $anchor->removeAttr('onclick'); // vip
+            $anchor->removeAttr('onmouseover'); // uvm
+            $anchor->removeAttr('onmouseout'); // uvm
+        }
+        $qp->top();
+        ob_start();
+        $qp->writeHTML();
+        $this->mContent = ob_get_clean(); 
+    }
+    
+
+    /**
+     * Before we rewrite the image tags, we'll have to ensure that any relative 
+     * links like src="../images/foo.jpg" are converted to full paths that can be 
+     * translated to a wiki file path.  qpAddParentToLink() should take care of that.
+     * @param type $content
+     * @return type
+     */
+    public function qpRewriteImages($content=null) {
+        
+        global $wgH2WEliminateDuplicateImages;
+                
+        if ( is_null($content) ) {
+            $content = $this->mContent;
+        }
+        $qp = htmlqp($content)->find('img');
+
+        foreach ($qp as $item) {
+            $src = $item->attr('src');
+            $src = ($wgH2WEliminateDuplicateImages)? basename($src) : $src;
+            $src = ( !empty($this->mCollectionName) )? "{$this->mCollectionName}/$src" : $src;
+            $newtag = "[[File::$src|center|frame]]";
+            $item->replaceWith($newtag);
+        }
+        $qp->top();
+        ob_start();
+        $qp->writeHTML();
+        $this->mContent = ob_get_clean();
+    }
+            
     public function cleanUVMFile() {
         // delete content tags
         $reHead = "#<head>.*?</head>#is";
@@ -793,9 +1195,9 @@ HERE
         // keep this last, because there will be a lot of blank lines generated
         $this->mContent = preg_replace($reBlankLine, '', $this->mContent);
         /*
-        $mouseAnchors = '#<a (?:name|href)=[^>]*?(?:onMouseOver|onMouseOut)[^>]*?>(.*?)</a>#ms';
-        $this->mContent = preg_replace($mouseAnchors, "$1", $this->mContent);
-        */
+          $mouseAnchors = '#<a (?:name|href)=[^>]*?(?:onMouseOver|onMouseOut)[^>]*?>(.*?)</a>#ms';
+          $this->mContent = preg_replace($mouseAnchors, "$1", $this->mContent);
+         */
     }
 
     /**
@@ -847,7 +1249,7 @@ HERE
         );
         $this->mContent = str_ireplace($myNeedles, '', $this->mContent);
     }
-    
+
     /**
      * We need to eliminate or replace mouseover links because they cause problems with 
      * DOM manipipluation as libxml can NOT read this content... it seems that Tidy 
@@ -861,18 +1263,17 @@ HERE
         $this->mContent = preg_replace($mouseAnchors, $this->mContent);
     }
 
-    
     /**
      * Automatically categorize the content based on what's found in the original
      * source.
      */
     private function autoCategorize() {
         $categoryTags = array();
-        $categories = array (
+        $categories = array(
             'uvm' => '[[Category:UVM]]',
             'vip' => '[[Category:VIP Info Hub]]'
         );
-        $needles = array (
+        $needles = array(
             'uvm' => 'Generated by Natural Docs',
             'vip' => 'Quadralay WebWorks AutoMap 2003 for FrameMaker'
         );
@@ -883,23 +1284,27 @@ HERE
         }
         $this->mContent .= "\n" . implode(" ", $categoryTags);
     }
- 
+
     /**
      * Use Pandoc to convert our content to mediawiki markup
      */
     public function panDoc2Wiki() {
-        // we could use sys_get_temp_dir()
-        $stage = realpath($this->mDataDir? $this->mDataDir: __FILE__ . "/../data/");
+        if( !empty($this->mDataDir) ) {
+            $stage = realpath($this->mDataDir);
+        } else {
+            $stage = sys_get_temp_dir();
+        }
         // $tempfilename = substr(str_shuffle(md5(microtime())), 0, 10);
-        $prefix='h2w';
+        $prefix = 'h2w';
         $tempfilename = tempnam($stage, $prefix);
         $handle = fopen($tempfilename, "w");
         fwrite($handle, $this->mContent); // raw doesn't work at all
         fclose($handle);
         // file_put_contents($stage/$tempfilename, $this->mContent);
-        $this->mContent = shell_exec("pandoc -t mediawiki $tempfilename");
+        $this->mContent = shell_exec("pandoc -f html -t mediawiki $tempfilename");
         unlink($tempfilename);
     }
-    
-    
+
 }
+
+
