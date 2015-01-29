@@ -50,6 +50,7 @@ class SpecialHtml2Wiki extends SpecialPage {
     public $mIsVIP; // we're purpose built to detect and handle two types of zipped content
     public $mIsUVM;
     public $mImages;  // an array of image files that should be imported
+    public $mResults; // the HTML-formatted result report of an import
 
     /* Protected Static Members */
 
@@ -158,19 +159,26 @@ class SpecialHtml2Wiki extends SpecialPage {
         $commentDefault = wfMessage('html2wiki-comment')->inContentLanguage()->parse();
         $this->mComment = $request->getText('log-comment', $commentDefault);
 
-
-        $requestedCollectionName = $request->getText('collection-name');
-        if (!empty($requestedCollectionName)) {
-            if (strlen($requestedCollectionName) < 2) {
+        // use the mCollectionName for tagging content.
+        // The whole value of mCollectionName (if any) plus the file name will 
+        // become the mArticleSavePath and mArticleTitle
+        $this->mCollectionName = (string) $request->getText('collection-name');
+        if (!empty($this->mCollectionName)) {
+            // make sure that any collection name is at least two characters
+            if (strlen($this->mCollectionName) < 2) {
                 $this->showForm("Invalid Collection Name; must be greater than a single character");
             }
-            if (stristr($requestedCollectionName, '/')) {
-                $this->mArticleSavePath = (string) $requestedCollectionName;
-                $parts = explode('/', $requestedCollectionName);
-                $this->mCollectionName = $parts[0];
-            } else {
-                $this->mCollectionName = (string) $requestedCollectionName;
+            // if it's not naked, split it into a name and a path (and fix up 
+            // the path to ensure there is a trailing slash)
+            if (stristr($this->mCollectionName, '/')) {
+                $parts = explode('/', $this->mCollectionName);
+                $this->mCollectionName = array_shift($parts); // take out the first part
+                $this->mArticleSavePath = implode('/', $parts); // back to a string
+                $this->mArticleSavePath = ( substr( $this->mArticleSavePath, -1) == '/' )? '' : '/';
             }
+            // later if we detect a zip, we'll build a different filename
+            // for now, assume a single HTML upload to replace an existing collection title
+            $this->mArticleTitle = $this->mFilename = $this->mCollectionName . '/' . $this->mArticleSavePath . $_FILES['userfile']['name'];
         } else {
             $this->mArticleTitle = $this->mFilename = $_FILES['userfile']['name'];
         }
@@ -434,7 +442,7 @@ class SpecialHtml2Wiki extends SpecialPage {
         $this->mFilename = $this->mOriginal['filename'] =  $_FILES['userfile']['name'];
         $this->mFilesize = $this->mOriginal['filesize'] = $_FILES['userfile']['size'];
 
-        switch ($this->mMimeType) {
+        switch ($this->mOriginal['mimetype']) {
             case 'application/x-gzip':
             case 'application/x-gtar':
             case 'application/zip':
@@ -491,6 +499,7 @@ class SpecialHtml2Wiki extends SpecialPage {
      * On the second pass, we process each entry (filtered by the first pass).
      */
     private function unwrapZipFile() {
+        $this->mMimeType = $this->mFilename = $this->mFilesize = '';
         $this->IsVIP = false;
         $this->IsUVM = false;
         $out = $this->getOutput();
@@ -555,16 +564,17 @@ class SpecialHtml2Wiki extends SpecialPage {
                         $out->addHTML('</pre></div>');
                          * 
                          */
-                        // $this->mFilesize = zip_entry_filesize($zip_entry);
                         $this->mFilename = zip_entry_name($zip_entry);
-                        if ($this->mCollectionName) {
-                          $this->mFilename = "$this->mCollectionName/$this->mFilename";
-                        } 
+                        $this->mFilesize = zip_entry_filesize($zip_entry);
+
                         if (zip_entry_open($zipHandle, $zip_entry, "r")) {
                             $this->mContent = $this->mContentRaw = 
                                     zip_entry_read($zip_entry, zip_entry_filesize($zip_entry));
                             zip_entry_close($zip_entry);
                         }
+                        // makeTitle
+                        $this->mArticleTitle = ($this->mCollectionName)? "$this->mCollectionName/$this->mFilename" : $this->mFilename;
+
                         $this->processFile();
                     }
                 }
@@ -624,6 +634,11 @@ class SpecialHtml2Wiki extends SpecialPage {
     private function showResults() {
         $out = $this->getOutput();
         $out->addHTML('<div id="h2wContent">' . $this->mResults . '</div>');
+    }
+    private function addFileToResults() {
+        $out = $this->mResults;
+        $size = $this->formatValue($this->mFilesize);
+        $out .= "<li>{$this->mFilename} ({$size}) {$this->mMimeType}</li>\n";
     }
 
     private function listFile() {
@@ -686,20 +701,24 @@ HERE
         // when only a single file is uploaded, we can populate content from tmp_name
         if ($this->mOriginal['mimetype'] == 'text/html') {
             $this->mContent = $this->mContentRaw = file_get_contents($_FILES['userfile']['tmp_name']);
+            // mArticleSavePath will be empty on a zip upload so this is 
+            if ($this->mArticleSavePath) {
+                $parents = explode('/', $this->mArticleSavePath);
+                // because the path always ends with '/' the last element will always be empty
+                $empty = array_pop($parents);
+                $parent = array_pop($parents);
+                while ($parent !== null) {
+                    $this->qpAddParentToLink($parent);
+                    $parent = array_pop($parents);
+                }
+            }
+
         }
+        
         // Tidy now works on mContent even when in fallback mode for MediaWiki-Vagrant
         $this->tidyup(self::getTidyOpts());
-        // mArticleSavePath will be empty on a zip upload so this is 
-        // all for single files
-        if ($this->mArticleSavePath) {
-            $parents = explode($this->mArticleSavePath);
-            $parent = array_pop($parents);
-            while ($parent !== null) {
-                $this->qpAddParentToLink($parent);
-                $parent = array_pop($parents);
-            }
-            $this->mArticleTitle = $this->mArticleSavePath . $this->mFilename;
-        }
+        // $this->tidyup();// with nothing, it should default to reading the config file
+
         // CleanLinks is a stronger version of RemoveMouseOvers
         $this->qpCleanLinks();
         
@@ -717,10 +736,10 @@ HERE
         $this->substituteTemplates();
         $this->autoCategorize();
         // $this->showRaw();
-        $this->showContent();
-        // $this->saveArticle();
+        // $this->showContent();
+        $this->saveArticle();
         // self::saveCat($this->mFilename, 'Html2Wiki Imports');
-
+        $this->addFileToResults();
 
         return true;
     }
@@ -930,9 +949,25 @@ HERE
         return $tidyOptsString;
     }
 
+    public static function tidyErrorsToArray ($errors) {
+        preg_match_all(
+                '/^(?:line (\d+) column (\d+) - )?(\S+): (?:\[((?:\d+\.?){4})]:) ?(.*?)$/m', 
+                $errors, $matches, PREG_SET_ORDER);
+        return $matches;
+    }
     /**
      * Tidyup will populate both mContent and mContentTidy 
      * and store errors in mTidyErrors
+     * 
+     * Since we support ZipArchives, it doesn't make sense to read from a file.
+     * Instead we need to read from a PHP Variable.  This isn't a problem when
+     * the Tidy module is available (like it is with PHP5).  However, in a strange
+     * twist of fate, the HHVM that comes with MediaWiki Vagrant does not yet
+     * have a Tidy extension built in.  So, we have to fall back to using Tidy 
+     * on the command line, and pass our PHP variables to STDIN / STDERR  
+     * The way to do this with PHP is to use proc_open().
+     * 
+     * You can test Tidy online at sites like http://infohound.net/tidy/tidy.pl
      * 
      * @param string | array $tidyConfig
      * if passed as an array like so
@@ -982,21 +1017,62 @@ HERE
             $tidy->parseString($this->mContentRaw, $tidyConfig, $encoding);
             $tidy->cleanRepair();
             // @todo need to do something else with this error list?
+            // regex converts string error into a two dimensional array 
+            // foreach line spit out by Tidy
+            // It will match Error, Warning, Info and Access error types.
             if (!empty($tidy->errorBuffer)) {
-                $this->mTidyErrors = $tidy->errorBuffer;
+                $this->mTidyErrors = self::tidyErrorsToArray($tidy->errorBuffer);
             }
             // just focus on the body of the document
             $this->mContentTidy = $this->mContent = (string) $tidy->body();
         } else {
+            // using Tidy on the command line expects input from STDIN
+            // We'll use printf which is more consistent than echo which varies
+            // We want something like the following
+            //$result =  shell_exec('printf "$content" | tidy');
+            $html = $this->mContent;
+            // don't need this escaping since we're not using shell_exec
+            // $html = str_replace(array('\\', '%'), array('\\\\', '%%'), $html);
+            
             $tidy = "/usr/bin/tidy";
             // only by passing the options as a long string worked.
             // also, $this->mTidyErrors will never populate unless we explicitly 
             // trap STDERR
             // 2>&1 1> /dev/null
-            $cmd = "$tidy -quiet -indent -ashtml $shellConfig <<<$this->mContent";
-            $escaped_command = escapeshellcmd($cmd);
-            //echo "executing $escaped_command";
-            $this->mContentTidy = $this->mContent = shell_exec($escaped_command);
+            $cmd = "$tidy -quiet -indent -ashtml $shellConfig";
+            // $escaped_command = escapeshellcmd($cmd);
+            // echo "executing $escaped_command";
+            // $this->mContentTidy = $this->mContent = shell_exec("printf '$html' | $escaped_command");
+            $descriptorspec = array(
+                0 => array("pipe", "r"), // stdin is a pipe that the child will read from
+                1 => array("pipe", "w"), // stdout is a pipe that the child will write to
+                2 => array("pipe", "w")  // stderr is a pipe that the child will write to
+                // 2 => array("file", "/tmp/error-output.txt", "a") // stderr is a file to write to
+            );
+            $process = proc_open($cmd, $descriptorspec, $pipes);
+            if (is_resource($process)) {
+                // $pipes now looks like this:
+                // 0 => writeable handle connected to child stdin
+                // 1 => readable handle connected to child stdout
+                // 2 => readable handle connected to child stderr
+                // Any error output will be appended to /tmp/error-output.txt
+
+                fwrite($pipes[0], $html);
+                fclose($pipes[0]);
+
+                $this->mContentTidy = $this->mContent = stream_get_contents($pipes[1]);
+                fclose($pipes[1]);
+                
+                $this->mTidyErrors = self::tidyErrorsToArray(stream_get_contents($pipes[2]));
+                fclose($pipes[2]);
+                
+                // It is important that you close any pipes before calling
+                // proc_close in order to avoid a deadlock
+                $return_value = proc_close($process);
+            } else {
+                die('could not get process open');
+            }
+
         }
         $this->isTidy = true;
         return true;
