@@ -50,7 +50,10 @@ class SpecialHtml2Wiki extends SpecialPage {
     public $mIsVIP; // we're purpose built to detect and handle two types of zipped content
     public $mIsUVM;
     public $mImages;  // an array of image files that should be imported
+    public $mFilesAreProcessed; // boolean, whether we've (uploaded and) processed content files
     public $mResults; // the HTML-formatted result report of an import
+    public $mFileCountExpected; // the number of files we expect to process
+    public $mFileCountProcessed; // the number of files we've actually processed
 
     /* Protected Static Members */
 
@@ -373,6 +376,7 @@ class SpecialHtml2Wiki extends SpecialPage {
      * $mFilesize
      */
     private function doUpload() {
+        $this->mFilesAreProcessed = false;
         $out = $this->getOutput();
         global $wgMaxUploadSize;
         try {
@@ -453,6 +457,7 @@ class SpecialHtml2Wiki extends SpecialPage {
             case 'text/html':
                 //process single file
                 $this->processFile();
+                $this->mFilesAreProcessed = true;
                 break;
 
             default:
@@ -461,8 +466,7 @@ class SpecialHtml2Wiki extends SpecialPage {
         }
         // we know about all the images that are referenced, make sure they are
         // in the wiki
-        $this->processImages();
-        return true;
+        return $this->mFilesAreProcessed;
     }
 
     
@@ -499,6 +503,7 @@ class SpecialHtml2Wiki extends SpecialPage {
      * On the second pass, we process each entry (filtered by the first pass).
      */
     private function unwrapZipFile() {
+        // blank out our per-file data
         $this->mMimeType = $this->mFilename = $this->mFilesize = '';
         $this->IsVIP = false;
         $this->IsUVM = false;
@@ -523,7 +528,11 @@ class SpecialHtml2Wiki extends SpecialPage {
                     // The html/ folder adds almost 1,000% more files
                     // case ( preg_match('#(?:htmldocs|html)/.*\.html?$#i', $entry)? $entry : '' ): #10,865
                     case ( preg_match('#htmldocs/.*\.html?$#i', $entry) ? $entry : '' ): #1,112
-                        $availableFiles[] = $entry;
+                        // a temporary filter to process a small number of files
+                        if ( preg_match('#advanced_topics#', $entry) ) {
+                            $availableFiles[] = $entry;
+                            $this->mIsVIP = true;
+                        }
                         break;
 
                     // The html/ folder adds 40% more images
@@ -550,7 +559,8 @@ class SpecialHtml2Wiki extends SpecialPage {
             if (is_resource($zipHandle)) {
                 while ($zip_entry = zip_read($zipHandle)) {
                     $entry = zip_entry_name($zip_entry);
-                    if (in_array($entry, $availableFiles) && $entry == $eoi) {
+                    if ( in_array($entry, $availableFiles) ) {
+                        $this->mFileCountExpected += 1;
                         /*
                         $out->addHTML('<div>Processing<br /><pre>' .
                                 "Name:               " . zip_entry_name($zip_entry) . "\n" . // docs/htmldocs/questa_vip_user/advanced_topics07.html
@@ -566,6 +576,7 @@ class SpecialHtml2Wiki extends SpecialPage {
                          */
                         $this->mFilename = zip_entry_name($zip_entry);
                         $this->mFilesize = zip_entry_filesize($zip_entry);
+                        $this->mMimeType = 'text/html'; // we'll spoof it for now.
 
                         if (zip_entry_open($zipHandle, $zip_entry, "r")) {
                             $this->mContent = $this->mContentRaw = 
@@ -578,6 +589,7 @@ class SpecialHtml2Wiki extends SpecialPage {
                         $this->processFile();
                     }
                 }
+                // check if mFileCountExpected = mFileCountProcessed and close the handle
                 zip_close($zipHandle);
             }
         } else {
@@ -633,12 +645,12 @@ class SpecialHtml2Wiki extends SpecialPage {
 
     private function showResults() {
         $out = $this->getOutput();
-        $out->addHTML('<div id="h2wContent">' . $this->mResults . '</div>');
+        $out->addHTML('<div id="h2wContent"><ul class="mw-ext-Html2Wiki">' . $this->mResults . '</ul></div>');
     }
     private function addFileToResults() {
-        $out = $this->mResults;
+        $this->mFileCountProcessed += 1;
         $size = $this->formatValue($this->mFilesize);
-        $out .= "<li>{$this->mFilename} ({$size}) {$this->mMimeType}</li>\n";
+        $this->mResults .= "<li>{$this->mFilename} ({$size}) {$this->mMimeType}</li>\n";
     }
 
     private function listFile() {
@@ -690,7 +702,16 @@ HERE
         if ($this->doUpload()) {
             // if($this->doLocalFile("/vagrant/mediawiki/extensions/Html2Wiki/data/uvm-1.1d/docs/html/files/base/uvm_printer-svh.html")) {
             // if($this->doLocalFile("/vagrant/mediawiki/extensions/Html2Wiki/data/docs/htmldocs/mgc_html_help/overview04.html")) {
-            $this->showResults();
+            
+            $this->mFilesAreProcessed = ($this->mFileCountExpected == $this->mFileCountProcessed)? true : false;
+            
+            if ($this->mFilesAreProcessed 
+         // @TODO add image processing          && $this->processImages()
+                    ) {
+                $this->showResults();
+            } else {
+                $this->showForm('Some files were not processed');
+            }
         } else {
             $this->showForm();
         }
@@ -701,40 +722,45 @@ HERE
         // when only a single file is uploaded, we can populate content from tmp_name
         if ($this->mOriginal['mimetype'] == 'text/html') {
             $this->mContent = $this->mContentRaw = file_get_contents($_FILES['userfile']['tmp_name']);
-            // mArticleSavePath will be empty on a zip upload so this is 
-            if ($this->mArticleSavePath) {
-                $parents = explode('/', $this->mArticleSavePath);
-                // because the path always ends with '/' the last element will always be empty
-                $empty = array_pop($parents);
-                $parent = array_pop($parents);
-                while ($parent !== null) {
-                    $this->qpAddParentToLink($parent);
-                    $parent = array_pop($parents);
-                }
-            }
-
+            $this->mFileCountExpected = 1;
         }
+        /* @todo Figure out where to put this... maybe in loadRequest
+        // mArticleSavePath will be empty on a zip upload so this is 
+        if ($this->mArticleSavePath) {
+            $parents = explode('/', $this->mArticleSavePath);
+            // because the path always ends with '/' the last element will always be empty
+            $empty = array_pop($parents);
+            $parent = array_pop($parents);
+            while ($parent !== null) {
+                $this->qpAddParentToLink($parent);
+                $parent = array_pop($parents);
+            }
+        }
+        */
         
         // Tidy now works on mContent even when in fallback mode for MediaWiki-Vagrant
         $this->tidyup(self::getTidyOpts());
         // $this->tidyup();// with nothing, it should default to reading the config file
-
+        $this->mContent = self::qpCleanVIP($this->mContent);
+        
         // CleanLinks is a stronger version of RemoveMouseOvers
         $this->qpCleanLinks();
         
+        // cleanUVM is actually good for both sets, and gets rid of scripts etc.
         $this->cleanUVMFile();
         
         $this->eliminateCruft();
         // example of using a static method that would be available without
         // an Html2Wiki object (outside the class)
         $this->mContent = self::qpItalics($this->mContent, 'span.cItalic' );
-        // functional
+        // functional version is commented out, but works just as well
         // $this->qpItalics('span.cItalic');
         // panDoc apparently lets double single quotes ''italics'' pass through
+        // so we can qpItalics before running panDoc2Wiki()
         $this->panDoc2Wiki();
-        $this->qpRewriteImages();
-        $this->substituteTemplates();
-        $this->autoCategorize();
+        // $this->qpRewriteImages();
+        // $this->substituteTemplates();
+        // $this->autoCategorize();
         // $this->showRaw();
         // $this->showContent();
         $this->saveArticle();
@@ -1014,7 +1040,7 @@ HERE
         if (class_exists('Tidy')) {
             $encoding = 'utf8';
             $tidy = new Tidy;
-            $tidy->parseString($this->mContentRaw, $tidyConfig, $encoding);
+            $tidy->parseString($this->mContent, $tidyConfig, $encoding);
             $tidy->cleanRepair();
             // @todo need to do something else with this error list?
             // regex converts string error into a two dimensional array 
@@ -1040,6 +1066,7 @@ HERE
             // trap STDERR
             // 2>&1 1> /dev/null
             $cmd = "$tidy -quiet -indent -ashtml $shellConfig";
+$tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-tags 1 --enclose-block-text 1 --enclose-text 1 --fix-backslash 1 --fix-bad-comments 1 --fix-uri 1 --hide-comments 1 --merge-divs 1 --merge-spans 1 --repeated-attributes keep-first --show-body-only 1 --show-errors 0 --show-warnings 0 --indent 0 --wrap 120 --tidy-mark 0 --write-back 0';
             // $escaped_command = escapeshellcmd($cmd);
             // echo "executing $escaped_command";
             // $this->mContentTidy = $this->mContent = shell_exec("printf '$html' | $escaped_command");
@@ -1049,7 +1076,7 @@ HERE
                 2 => array("pipe", "w")  // stderr is a pipe that the child will write to
                 // 2 => array("file", "/tmp/error-output.txt", "a") // stderr is a file to write to
             );
-            $process = proc_open($cmd, $descriptorspec, $pipes);
+            $process = proc_open($tidy, $descriptorspec, $pipes);
             if (is_resource($process)) {
                 // $pipes now looks like this:
                 // 0 => writeable handle connected to child stdin
@@ -1145,6 +1172,43 @@ HERE
         $qp->writeHTML();
         $return = ob_get_clean();
         return $return;
+    }
+    
+    /**
+     * A function that will strip the head, and remove certain document elements
+     * which are found in VIP collections and are not desired for conversion to
+     * wikitext and so they should be filtered out.
+     * @param string $content
+     * @return string the cleaned content
+     */
+    public static function qpCleanVIP($content) {
+        $qp = htmlqp($content);
+        $ea = $qp->top()->find('head');
+        foreach ($ea as $head) {
+            $head->remove();
+        }
+        $qp->find('#BodyPopup')->remove();
+        $qp->find('#HideBody')->remove();
+        $qp->find('#BodyContent')->unwrap();
+        // $qp->top()->find('#BodyContent')->html();
+        ob_start();
+        $qp->writeHTML();
+        $return = ob_get_clean();
+        return $return;
+    }
+    
+    /**
+     * A method to remove HTML elements according to their ID
+     * @param string $content a document fragment
+     * @param string $selector, an element id like '#foo', or .class but that is more destructive
+     * @return string
+     */
+    public static function qpRemoveIds($content, $selector) {
+        $qp = htmlqp($content, $selector)->remove();
+        ob_start();
+        $qp->writeHTML();
+        $return = ob_get_clean();
+        return $return;        
     }
    
     
