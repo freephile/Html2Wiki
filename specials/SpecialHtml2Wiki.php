@@ -744,7 +744,11 @@ HERE
         $this->mContent = self::qpCleanVIP($this->mContent);
         
         // CleanLinks is a stronger version of RemoveMouseOvers
-        $this->qpCleanLinks();
+        //$this->qpCleanLinks();
+        // Remove mouseovers and onclick handlers in links
+        $this->qpRemoveMouseOvers();
+        // turn <a name="foo"></a> to <span name="foo"></span> for intradocument links
+        $this->mContent = self::qpLinkToSpan($this->mContent);
         
         // cleanUVM is actually good for both sets, and gets rid of scripts etc.
         $this->cleanUVMFile();
@@ -1265,6 +1269,28 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
          ob_start();
          $qp->writeHTML();
          $this->mContent = ob_get_clean();
+    }
+    
+    public static function qpLinkToSpan($content) {
+        $qp = htmlqp($content, 'a');
+        foreach ($qp as $anchor) {
+            if ($anchor->hasAttr('href')) {
+                // in VIP anchors with href's don't have names and vice versa
+                // but we still want to be extra cautious not to turn a link
+                // with an href into a span tag
+                continue; 
+            }
+            if ($anchor->hasAttr('name')) {
+                $name = $anchor->attr('name');
+                $linktext = $anchor->text(); // normally no link text, but just in case
+                $newtag = "<span id=\"$name\">$linktext</span>";
+                $anchor->replaceWith($newtag);
+            }
+        }
+        ob_start();
+        $qp->writeHTML();
+        $return = ob_get_clean();
+        return $return;        
     }
     
     public function qpRemoveMouseOvers() {
