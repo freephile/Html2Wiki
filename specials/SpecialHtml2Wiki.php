@@ -593,13 +593,12 @@ class SpecialHtml2Wiki extends SpecialPage {
                                     zip_entry_read($zip_entry, zip_entry_filesize($zip_entry));
                             zip_entry_close($zip_entry);
                         }
-                        // makeTitle
+                        
                         // mArticleSavePath equals the value of mCollectionName (if any) plus any intermediate path elements NOT including the file name
                         $this->mArticleSavePath = pathinfo($this->mFilename, PATHINFO_DIRNAME);
-                        $this->mArticleSavePath = ($this->mCollectionName)? "$this->mCollectionName/$this->mArticleSavePath" : $this->mArticleSavePath;
+                        $this->mArticleSavePath = ($this->mCollectionName)? "{$this->mCollectionName}/{$this->mArticleSavePath}" : $this->mArticleSavePath;
                         // mArticleTitle will be the full value of mCollectionName (if any) plus mArticleSavePath plus the file name MINUS any extension
-
-                        $this->mArticleTitle = ($this->mCollectionName)? "$this->mCollectionName/$this->mFilename" : $this->mFilename;
+                        $this->mArticleTitle = ($this->mCollectionName)? "{$this->mCollectionName}/{$this->mFilename}" : $this->mFilename;
                         $path = $this->mArticleTitle;
                         $this->mArticleTitle = pathinfo($path, PATHINFO_DIRNAME) . "/" . pathinfo($path, PATHINFO_FILENAME);
 
@@ -735,25 +734,16 @@ HERE
         return true;
     }
 
+    /**
+     * $this->mArticleSavePath, $this->mArticl
+     * @return boolean
+     */
     private function processFile() {
         // when only a single file is uploaded, we can populate content from tmp_name
         if ($this->mOriginal['mimetype'] == 'text/html') {
             $this->mContent = $this->mContentRaw = file_get_contents($_FILES['userfile']['tmp_name']);
             $this->mFileCountExpected = 1;
         }
-        /* @todo Figure out where to put this... maybe in loadRequest
-        // mArticleSavePath will be empty on a zip upload so this is 
-        if ($this->mArticleSavePath) {
-            $parents = explode('/', $this->mArticleSavePath);
-            // because the path always ends with '/' the last element will always be empty
-            $empty = array_pop($parents);
-            $parent = array_pop($parents);
-            while ($parent !== null) {
-                $this->qpAddParentToLink($parent);
-                $parent = array_pop($parents);
-            }
-        }
-        */
         
         // Tidy now works on mContent even when in fallback mode for MediaWiki-Vagrant
         $this->tidyup(self::getTidyOpts());
@@ -971,7 +961,7 @@ HERE
 				<tr>
 					<td></td>
 					<td class='mw-submit'>" .
-                    Xml::submitButton($this->msg('uploadbtn')->text()) .
+                    Xml::submitButton($this->msg('html2wiki-importbtn')->text()) .
                     "</td>
 				</tr>" .
                     Xml::closeElement('table') .
