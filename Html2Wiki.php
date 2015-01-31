@@ -100,6 +100,13 @@ global $wgH2WEliminateDuplicateImages, $wgH2WProcessImages;
 $wgH2WEliminateDuplicateImages = true;
 $wgH2WProcessImages = true; 
 
+// we need to ensure that subpages are allowed in the main namespace
+global $wgNamespacesWithSubpages;
+
+if ( $wgNamespacesWithSubpages[NS_MAIN] !== true ) {
+    die("This extension requires $wgNamespacesWithSubpages set to TRUE in the MAIN namespace");
+}
+
 // Register files
 $dir = __DIR__;
 $wgAutoloadClasses['Html2WikiHooks'] = "$dir/Html2Wiki.hooks.php";
