@@ -595,8 +595,8 @@ class SpecialHtml2Wiki extends SpecialPage {
                         }
                         
                         // mArticleSavePath equals the value of mCollectionName (if any) plus any intermediate path elements NOT including the file name
+                        // The mCollectionName will get added in during the call to qpMakeLinksAbsolute()
                         $this->mArticleSavePath = pathinfo($this->mFilename, PATHINFO_DIRNAME);
-                        $this->mArticleSavePath = ($this->mCollectionName)? "{$this->mCollectionName}/{$this->mArticleSavePath}" : $this->mArticleSavePath;
                         // mArticleTitle will be the full value of mCollectionName (if any) plus mArticleSavePath plus the file name MINUS any extension
                         $this->mArticleTitle = ($this->mCollectionName)? "{$this->mCollectionName}/{$this->mFilename}" : $this->mFilename;
                         $path = $this->mArticleTitle;
@@ -735,7 +735,7 @@ HERE
     }
 
     /**
-     * $this->mArticleSavePath, $this->mArticl
+     * $this->mArticleSavePath, $this->mArticleTitle already set
      * @return boolean
      */
     private function processFile() {
@@ -1176,7 +1176,7 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
         $qp = htmlqp($this->mContent, 'a:link');
         foreach ($qp as $anchor) {
             $href = $anchor->attr('href');
-            $absolutePath = "$fullpath{$href}";
+            $absolutePath = "$fullpath/{$href}";
             // NO need to get rid of any ../ because it will still work
             $anchor->attr('href', $absolutePath);
         }
