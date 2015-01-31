@@ -163,8 +163,8 @@ class SpecialHtml2Wiki extends SpecialPage {
         $this->mComment = $request->getText('log-comment', $commentDefault);
 
         // use the mCollectionName for tagging content.
-        // The whole value of mCollectionName (if any) plus the file name will 
-        // become the mArticleSavePath and mArticleTitle
+        // mArticleSavePath equals the value of mCollectionName (if any) plus any intermediate path elements NOT including the file name
+        // mArticleTitle will be the full value of mCollectionName (if any) plus mArticleSavePath plus the file name MINUS any extension
         $this->mCollectionName = (string) $request->getText('collection-name');
         if (!empty($this->mCollectionName)) {
             // make sure that any collection name is at least two characters
@@ -173,11 +173,13 @@ class SpecialHtml2Wiki extends SpecialPage {
             }
             // if it's not naked, split it into a name and a path (and fix up 
             // the path to ensure there is a trailing slash)
-            if (stristr($this->mCollectionName, '/')) {
+            // We do this here to handle single files, but also later in Upload
+            // to handle zips
+            if ( stristr($this->mCollectionName, '/') ) {
                 $parts = explode('/', $this->mCollectionName);
                 $this->mCollectionName = array_shift($parts); // take out the first part
                 $this->mArticleSavePath = implode('/', $parts); // back to a string
-                $this->mArticleSavePath = ( substr( $this->mArticleSavePath, -1) == '/' )? '' : '/';
+                $this->mArticleSavePath = ( substr( $this->mArticleSavePath, -1) == '/' )? $this->mArticleSavePath : "{$this->mArticleSavePath}/";
             }
             // later if we detect a zip, we'll build a different filename
             // for now, assume a single HTML upload to replace an existing collection title
@@ -185,6 +187,9 @@ class SpecialHtml2Wiki extends SpecialPage {
         } else {
             $this->mArticleTitle = $this->mFilename = $_FILES['userfile']['name'];
         }
+        // We'll make the title without the extension
+        $path = $this->mArticleTitle;
+        $this->mArticleTitle = pathinfo($path, PATHINFO_DIRNAME) . "/" . pathinfo($path, PATHINFO_FILENAME);
     }
 
     public static function getTidyOpts() {
@@ -450,6 +455,11 @@ class SpecialHtml2Wiki extends SpecialPage {
             case 'application/x-gzip':
             case 'application/x-gtar':
             case 'application/zip':
+                // @todo Do we disallow uploading a zip file without a collection name?
+                if( empty ($this->mCollectionName) ) {
+                    // warn that you can't do that
+                }
+
                 // unwrap the file
                 $this->unwrapZipFile();
                 break;
@@ -584,7 +594,14 @@ class SpecialHtml2Wiki extends SpecialPage {
                             zip_entry_close($zip_entry);
                         }
                         // makeTitle
+                        // mArticleSavePath equals the value of mCollectionName (if any) plus any intermediate path elements NOT including the file name
+                        $this->mArticleSavePath = pathinfo($this->mFilename, PATHINFO_DIRNAME);
+                        $this->mArticleSavePath = ($this->mCollectionName)? "$this->mCollectionName/$this->mArticleSavePath" : $this->mArticleSavePath;
+                        // mArticleTitle will be the full value of mCollectionName (if any) plus mArticleSavePath plus the file name MINUS any extension
+
                         $this->mArticleTitle = ($this->mCollectionName)? "$this->mCollectionName/$this->mFilename" : $this->mFilename;
+                        $path = $this->mArticleTitle;
+                        $this->mArticleTitle = pathinfo($path, PATHINFO_DIRNAME) . "/" . pathinfo($path, PATHINFO_FILENAME);
 
                         $this->processFile();
                     }
@@ -749,6 +766,8 @@ HERE
         $this->qpRemoveMouseOvers();
         // turn <a name="foo"></a> to <span name="foo"></span> for intradocument links
         $this->mContent = self::qpLinkToSpan($this->mContent);
+        // fix up relative links
+        $this->qpMakeLinksAbsolute();
         
         // cleanUVM is actually good for both sets, and gets rid of scripts etc.
         $this->cleanUVMFile();
@@ -1154,6 +1173,28 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
         ob_start();
         $qp->writeHTML();
         $this->mContent = ob_get_clean();
+    }
+    
+    /**
+     * Function to convert relative links to full absolute links to preserve
+     * the Collection hierarchy in the wiki for imported Collections.
+     * 
+     * @return boolean true on completion
+     */
+    public function qpMakeLinksAbsolute () {
+        $fullpath = ($this->mCollectionName)? "/{$this->mCollectionName}/{$this->mArticleSavePath}" : "/{$this->mArticleSavePath}";
+        $qp = htmlqp($this->mContent, 'a:link');
+        foreach ($qp as $anchor) {
+            $href = $anchor->attr('href');
+            $absolutePath = "$fullpath{$href}";
+            // NO need to get rid of any ../ because it will still work
+            $anchor->attr('href', $absolutePath);
+        }
+        ob_start();
+        $qp->writeHTML();
+        $this->mContent = ob_get_clean();
+        return true;
+
     }
     
     /**
