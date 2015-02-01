@@ -462,6 +462,7 @@ class SpecialHtml2Wiki extends SpecialPage {
 
                 // unwrap the file
                 $this->unwrapZipFile();
+                $this->saveImages();
                 break;
 
             case 'text/html':
@@ -519,11 +520,11 @@ class SpecialHtml2Wiki extends SpecialPage {
         $this->IsUVM = false;
         $out = $this->getOutput();
         $zipfile = $_FILES['userfile']['tmp_name'];
-        // $zipfile = __DIR__ . '/data/vip-info-hub-docs-for-wiki-import.zip';
-        // $zipfile = realpath($zipfile);
+// $zipfile = __DIR__ . '/data/vip-info-hub-docs-for-wiki-import.zip';
+// $zipfile = realpath($zipfile);
 // The "Questa Verification IP User Guide" -> "Retargeting a Normal Sequence Item" (./docs/htmldocs/questa_vip_user/advanced_topics07.html)
 // content file references the ./docs/htmldocs/questa_vip_user/images/message_sequence_chart__normal_mvc_sequence.jpg image.
-        $eoi = 'docs/htmldocs/questa_vip_user/advanced_topics07.html';
+// $eoi = 'docs/htmldocs/questa_vip_user/advanced_topics07.html';
 
         $availableFiles = array();
         $availableImages = array();
@@ -548,7 +549,10 @@ class SpecialHtml2Wiki extends SpecialPage {
                     // The html/ folder adds 40% more images
                     // case ( preg_match('#(?:htmldocs|html)/.*/images/.*\.(?:jpe?g|png|gif)$#i', $entry)? $entry : '' ): #715
                     case ( preg_match('#htmldocs/.*/images/.*\.(?:jpe?g|png|gif)$#i', $entry) ? $entry : '' ):  #511
-                        $availableImages[] = $entry;
+                        // a temporary filter to process a small number of files
+                        if ( preg_match('#advanced_topics#', $entry) ) {
+                            $availableImages[] = $entry;
+                        }
                         break;
 
                     case 'docs/htmldocs/':
@@ -564,6 +568,8 @@ class SpecialHtml2Wiki extends SpecialPage {
             zip_close($zipHandle);
         }
         if ($this->mIsVIP) {
+            $imageCount = 0;
+            $this->mImages = array();
             // echo "Now we're processing a VIP Info Hubs zip\n";
             $zipHandle = zip_open($zipfile);
             if (is_resource($zipHandle)) {
@@ -571,19 +577,7 @@ class SpecialHtml2Wiki extends SpecialPage {
                     $entry = zip_entry_name($zip_entry);
                     if ( in_array($entry, $availableFiles) ) {
                         $this->mFileCountExpected += 1;
-                        /*
-                        $out->addHTML('<div>Processing<br /><pre>' .
-                                "Name:               " . zip_entry_name($zip_entry) . "\n" . // docs/htmldocs/questa_vip_user/advanced_topics07.html
-                                "Actual Filesize:    " . zip_entry_filesize($zip_entry) . "\n" );
-                        if (zip_entry_open($zipHandle, $zip_entry, "r")) {
-                            $out->addHTML("File Contents:\n");
-                            $buf = zip_entry_read($zip_entry, zip_entry_filesize($zip_entry));
-                            $out->addHtml("$buf\n");
-                            zip_entry_close($zip_entry);
-                        }
-                        $out->addHTML('</pre></div>');
-                         * 
-                         */
+
                         $this->mFilename = zip_entry_name($zip_entry);
                         $this->mFilesize = zip_entry_filesize($zip_entry);
                         $this->mMimeType = 'text/html'; // we'll spoof it for now.
@@ -603,6 +597,23 @@ class SpecialHtml2Wiki extends SpecialPage {
                         $this->mArticleTitle = pathinfo($path, PATHINFO_DIRNAME) . "/" . pathinfo($path, PATHINFO_FILENAME);
 
                         $this->processFile();
+                    }
+                    // We'll take all the images we find and create an array of 
+                    // necessary info that we can pass to saveImages();
+                    if ( in_array($entry, $availableImages) ) {
+                        // remove 'images/' from the path because we don't want that in our final title
+                        $this->mFilename = str_replace( 'images/', '', zip_entry_name($zip_entry) );
+                        $this->mFilesize = zip_entry_filesize($zip_entry);
+                        // $this->mMimeType = 'image/jpg'; // we'll spoof it for now.
+                        $this->mImages[$imageCount]['title'] = ($this->mCollectionName)? "{$this->mCollectionName}/{$this->mFilename}" : $this->mFilename;
+                        $this->mImages[$imageCount]['filesize'] = $this->mFilesize;
+                        if (zip_entry_open($zipHandle, $zip_entry, "r")) {
+                            $buf = zip_entry_read($zip_entry, zip_entry_filesize($zip_entry));
+                            zip_entry_close($zip_entry);
+                        }
+                        $this->mImages[$imageCount]['tmpfile'] = $this->makeTempFile($buf);
+                        unset($buf);
+                        $imageCount++;
                     }
                 }
                 // check if mFileCountExpected = mFileCountProcessed and close the handle
@@ -705,8 +716,7 @@ HERE
 
     /**
      * Do the import which consists of three phases:
-     * 1) Select and/or Upload user nominated files to a temporary area so that
-     * we can then 
+     * 1) Select and/or Upload user nominated files 
      * 2) pre-process, filter, and convert them to wikitext 
      * 3) Create the articles, and images
      */
@@ -715,20 +725,18 @@ HERE
         global $wgOut;
         $wgOut->addModules('ext.Html2Wiki');
 
-        if ($this->doUpload()) {
+        if ( $this->doUpload() ) {
             // if($this->doLocalFile("/vagrant/mediawiki/extensions/Html2Wiki/data/uvm-1.1d/docs/html/files/base/uvm_printer-svh.html")) {
             // if($this->doLocalFile("/vagrant/mediawiki/extensions/Html2Wiki/data/docs/htmldocs/mgc_html_help/overview04.html")) {
             
             $this->mFilesAreProcessed = ($this->mFileCountExpected == $this->mFileCountProcessed)? true : false;
-            
-            if ($this->mFilesAreProcessed 
-         // @TODO add image processing          && $this->processImages()
-                    ) {
+            if ( $this->mFilesAreProcessed ) {
                 $this->showResults();
             } else {
                 $this->showForm('Some files were not processed');
             }
         } else {
+            // @todo This should be an error report, not a form.
             $this->showForm();
         }
         return true;
@@ -758,7 +766,8 @@ HERE
         $this->mContent = self::qpLinkToSpan($this->mContent);
         // fix up relative links
         $this->qpMakeLinksAbsolute();
-        
+        // fix up the image links
+        $this->qpAlterImageLinks();
         // cleanUVM is actually good for both sets, and gets rid of scripts etc.
         $this->cleanUVMFile();
         
@@ -786,47 +795,39 @@ HERE
     /**
      * afer processing (all) file(s), we have a list of images to import
      */
-    public function processImages() {
+    public function saveImages() {
         global $wgH2WProcessImages;
         if ( $wgH2WProcessImages === false ) {
             return true;
         }
-        $images = $this->mImages;
         
         $out = $this->getOutput();
         $user = $this->getUser();
-        $token = $user->getEditToken();
-        foreach ($images as $image) {
-            $title = $image['title']->makeTitle(NS_FILE);        
-            $existing = $title->exists();
-            $actionverb = $existing ? 'edited' : 'created';
-            $action = 'edit';
-            $api = new ApiMain(
-                    new DerivativeRequest(
-                    $this->getRequest(), // Fallback upon $wgRequest if you can't access context
-                    array(
-                'action' => $action,
-                'title' => $title,
-                        // can we even use 'text' in a file edit action
-                'text' => $image['text'], // can only use one of 'text' or 'appendtext'
-                'summary' => $image['text'],
-                'notminor' => true,
-                'token' => $token
-                    ), true // was posted?
-                    ), true // enable write?
-            );
-            $api->execute(); // actually save the article.
-            // @todo convert this to a message with parameters to go in en.json
-            $out->addWikiText('<div class="success">' . $title . ' was ' . $actionverb . '. See [[' . $title . ']]</div>');
-            $logEntry = new ManualLogEntry('html2wiki', 'import'); // Log action 'import' in the Special:Log for 'html2wiki'
-            $logEntry->setPerformer($user); // User object, the user who performed this action
-            $logEntry->setTarget($title); // The page that this log entry affects, a Title object
-            $logEntry->setComment($this->mComment);
-            $logid = $logEntry->insert();
-            // optionally publish the log item to recent changes
-            // $logEntry->publish( $logid );
-
+        
+        $images = $this->mImages;
+        if (!is_array($images)) {
+            die('No images to save');
         }
+        foreach ($images as $key => $img) {
+            $title = $img[$key]['title']->makeTitle(NS_FILE);
+            $image = wfLocalFile( $title );
+            wfDebug( __METHOD__ . ": processing {$image[$key]['title']}" ); // @todo remove this later or set it only to log
+            $result = $image->upload($img[$key]['tmpfile']);
+            if ($result) {
+                $out->addWikiText('<div class="success">' . $title . ' was ' . $actionverb . '. See [[' . $title . ']]</div>');
+                $logEntry = new ManualLogEntry('html2wiki', 'import'); // Log action 'import' in the Special:Log for 'html2wiki'
+                $logEntry->setPerformer($user); // User object, the user who performed this action
+                $logEntry->setTarget($title); // The page that this log entry affects, a Title object
+                $logEntry->setComment($this->mComment);
+                $logid = $logEntry->insert();
+                // optionally publish the log item to recent changes
+                $logEntry->publish( $logid );
+            } else {
+                die("failed to upload $img[$key]['tmpfile']");
+            }
+            unlink($img[$key]['tmpfile']);
+        }
+        // images saved
     }
 
     private function makeTitle($namespace = NS_MAIN) {
@@ -945,7 +946,7 @@ HERE
                     Xml::label($this->msg('html2wiki-collection-name')->text(), 'mw-collection-name') .
                     "</td>
 					<td class='mw-input'>" .
-                    Xml::input('collection-name', 50, ( $this->sourceName == 'upload' ? $this->mCollectionName : ''), // value
+                    Xml::input('collection-name', 50, ( $this->mRequest ? $this->mCollectionName : ''), // value
                             array('id' => 'mw-collection-name', 'type' => 'text')) . ' ' . // attribs
                     "</td>
 				</tr>
@@ -954,7 +955,7 @@ HERE
                     Xml::label($this->msg('import-comment')->text(), 'mw-import-comment') .
                     "</td>
 					<td class='mw-input'>" .
-                    Xml::input('log-comment', 50, ( $this->sourceName == 'upload' ? $this->mComment : ''), // value
+                    Xml::input('log-comment', 50, ( $this->mRequest ? $this->mComment : ''), // value
                             array('id' => 'mw-import-comment', 'type' => 'text')) . ' ' . // attribs
                     "</td>
 				</tr>
@@ -1185,6 +1186,61 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
         $this->mContent = ob_get_clean();
         return true;
 
+    }
+    /**
+     * A function to change the image tags in imported documents 
+     * to reflect the path that those images will be found at in the wiki.
+     * 
+     * We also want to dress up the tag so that it can be useful to Pandoc
+     * 
+     * Our source content looks like this (blank lines removed):
+     * @source
+       <a name="wp80923"></a><p class="pFigureTitle" id="MGC80923">
+        Figure 4-1. <a name="CRefID61031"></a>
+        Message Sequence Chart for a Normal mvc_sequence<a name='Graphic80921'></a><img src="images/message_sequence_chart__normal_mvc_sequence.jpg"  style='width:6.36667in;'  class="Aligncenter" id='wp80921' border='0' hspace='0' vspace='0'/>
+        </p>
+     * @source
+     * 
+     * Pandoc will recognize and condense "title" and "alt" attributes, producing 
+     * [[Image: source txt ]]
+     * 
+     * Also, Pandoc has special handling if the Title attribute starts with 
+     * the word 'Figure', producing something like
+     * [[Image: src |frame|none txt ]]
+     * 
+     * Our conversion currently looks like 
+     * @source
+       <span id="wp80923"></span>
+       Figure 4-1. <span id="CRefID61031"></span> 
+       Message Sequence Chart for a Normal mvc_sequence<span id="Graphic80921"></span>[[Image:images/message_sequence_chart__normal_mvc_sequence.jpg]]
+      @source
+     * 
+     * This is because we already preserve "named anchors" by converting them to spans
+     * 
+     * What we'll do in this function is grab the "text" portion of the parent
+     * paragraph element and create a title attribute for our image.
+     * 
+     * We'll also fix up the src attribue to remove the 'images/' component and 
+     * replace it with a full path of the article-- which will be the equivalent
+     * location of the image that is saved into the wiki's file namespace
+     * 
+     */
+    public function qpAlterImageLinks () {
+        $fullpath = ($this->mCollectionName)? "/{$this->mCollectionName}/{$this->mArticleSavePath}" : "/{$this->mArticleSavePath}";
+        $qp = htmlqp ($this->mContent, 'img');
+        foreach ($qp as $img) {
+            $title = $img->parent('.pFigureTitle')->text();
+            $title = str_replace(array("\r", "\r\n", "\n"), ' ', $title);
+            $title = preg_replace("/^\s+/", '', $title);
+            $src = $img->attr('src');
+            $src = str_replace('images/', '', $src);
+            $img->attr('src', "$fullpath{$src}");
+            $img->attr('title', $title);
+        }
+        ob_start();
+        $qp->writeHTML();
+        $this->mContent = ob_get_clean();
+        return true;
     }
     
     /**
@@ -1481,22 +1537,32 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
         }
         $this->mContent .= "\n" . implode(" ", $categoryTags);
     }
-
+    
     /**
-     * Use Pandoc to convert our content to mediawiki markup
+     * A convenience function to temporarily store contents so that we can use
+     * other tools or methods that expect to work on a file rather than a stream
+     * @param type $content
+     * @return type
      */
-    public function panDoc2Wiki() {
+    public function makeTempFile ($content) {
         if( !empty($this->mDataDir) ) {
             $stage = realpath($this->mDataDir);
         } else {
             $stage = sys_get_temp_dir();
         }
-        // $tempfilename = substr(str_shuffle(md5(microtime())), 0, 10);
         $prefix = 'h2w';
         $tempfilename = tempnam($stage, $prefix);
         $handle = fopen($tempfilename, "w");
-        fwrite($handle, $this->mContent); // raw doesn't work at all
+        fwrite($handle, $content);
         fclose($handle);
+        return $tempfilename;
+    }
+
+    /**
+     * Use Pandoc to convert our content to mediawiki markup
+     */
+    public function panDoc2Wiki() {
+        $tempfilename = $this->makeTempFile($this->mContent);
         // file_put_contents($stage/$tempfilename, $this->mContent);
         $this->mContent = shell_exec("pandoc -f html -t mediawiki $tempfilename");
         unlink($tempfilename);
