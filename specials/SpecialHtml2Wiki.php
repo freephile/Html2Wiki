@@ -514,6 +514,7 @@ class SpecialHtml2Wiki extends SpecialPage {
      * On the second pass, we process each entry (filtered by the first pass).
      */
     private function unwrapZipFile() {
+        // wfDebug( __METHOD__ . ": unzipping stuff" );
         // blank out our per-file data
         $this->mMimeType = $this->mFilename = $this->mFilesize = '';
         $this->IsVIP = false;
@@ -550,7 +551,7 @@ class SpecialHtml2Wiki extends SpecialPage {
                     // case ( preg_match('#(?:htmldocs|html)/.*/images/.*\.(?:jpe?g|png|gif)$#i', $entry)? $entry : '' ): #715
                     case ( preg_match('#htmldocs/.*/images/.*\.(?:jpe?g|png|gif)$#i', $entry) ? $entry : '' ):  #511
                         // a temporary filter to process a small number of files
-                        if ( preg_match('#advanced_topics#', $entry) ) {
+                        if ( preg_match('#vip#', $entry) ) {
                             $availableImages[] = $entry;
                         }
                         break;
@@ -567,6 +568,7 @@ class SpecialHtml2Wiki extends SpecialPage {
             }
             zip_close($zipHandle);
         }
+        // wfDebug( __METHOD__ . ": done with first inventory of zip archive" );
         if ($this->mIsVIP) {
             $imageCount = 0;
             $this->mImages = array();
@@ -575,6 +577,8 @@ class SpecialHtml2Wiki extends SpecialPage {
             if (is_resource($zipHandle)) {
                 while ($zip_entry = zip_read($zipHandle)) {
                     $entry = zip_entry_name($zip_entry);
+                    
+                    // First we'll process HTML files
                     if ( in_array($entry, $availableFiles) ) {
                         $this->mFileCountExpected += 1;
 
@@ -598,9 +602,11 @@ class SpecialHtml2Wiki extends SpecialPage {
 
                         $this->processFile();
                     }
+
                     // We'll take all the images we find and create an array of 
                     // necessary info that we can pass to saveImages();
                     if ( in_array($entry, $availableImages) ) {
+                        // wfDebug( __METHOD__ . ": saw $entry" );
                         // remove 'images/' from the path because we don't want that in our final title
                         $this->mFilename = str_replace( 'images/', '', zip_entry_name($zip_entry) );
                         $this->mFilesize = zip_entry_filesize($zip_entry);
@@ -616,9 +622,11 @@ class SpecialHtml2Wiki extends SpecialPage {
                         $imageCount++;
                     }
                 }
+                // wfDebug( __METHOD__ . ": imageCount is $imageCount" );
                 // check if mFileCountExpected = mFileCountProcessed and close the handle
                 zip_close($zipHandle);
             }
+            // wfDebug( __METHOD__ . ": done with second pass through zip archive" );
         } else {
             $out->addHTML('<div><pre>');
             $out->addHTML('not VIP');
@@ -805,15 +813,19 @@ HERE
         $user = $this->getUser();
         
         $images = $this->mImages;
-        if (!is_array($images)) {
+        if (!is_array($images) || count($images) < 1 ) {
             die('No images to save');
         }
-        foreach ($images as $key => $img) {
-            $title = $img[$key]['title']->makeTitle(NS_FILE);
-            $image = wfLocalFile( $title );
-            wfDebug( __METHOD__ . ": processing {$image[$key]['title']}" ); // @todo remove this later or set it only to log
-            $result = $image->upload($img[$key]['tmpfile']);
-            if ($result) {
+        // @todo, modify this so we can enter dynamic $comment and $pageText
+        $comment = "imported by Html2Wiki";
+        $pageText = "[[Category:Html2Wiki]] [[Category:VIP]]";
+
+        foreach ($images as $item) {
+            // wfDebug( __METHOD__ . ": processing {$item['title']}" ); // @todo remove this later or set it only to log
+            $title = Title::makeTitleSafe( NS_FILE, $item['title'] );
+            $image = wfLocalFile( $title );            
+            $result = $image->upload($item['tmpfile'], $comment, $pageText);
+            if ($result !== false ) {
                 $out->addWikiText('<div class="success">' . $title . ' was ' . $actionverb . '. See [[' . $title . ']]</div>');
                 $logEntry = new ManualLogEntry('html2wiki', 'import'); // Log action 'import' in the Special:Log for 'html2wiki'
                 $logEntry->setPerformer($user); // User object, the user who performed this action
@@ -823,9 +835,9 @@ HERE
                 // optionally publish the log item to recent changes
                 $logEntry->publish( $logid );
             } else {
-                die("failed to upload $img[$key]['tmpfile']");
+                die("failed to upload {$item['tmpfile']}");
             }
-            unlink($img[$key]['tmpfile']);
+            unlink($item['tmpfile']);
         }
         // images saved
     }
