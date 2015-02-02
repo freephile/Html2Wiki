@@ -188,10 +188,25 @@ class SpecialHtml2Wiki extends SpecialPage {
             $this->mArticleTitle = $this->mFilename = $_FILES['userfile']['name'];
         }
         // We'll make the title without the extension
-        $path = $this->mArticleTitle;
-        $this->mArticleTitle = pathinfo($path, PATHINFO_DIRNAME) . "/" . pathinfo($path, PATHINFO_FILENAME);
+        $this->mArticleTitle = self::removeExtensionFromPath($this->mArticleTitle);
     }
 
+    /**
+     * Takes a filepath and removes the 'extension' component
+     * E.g. /foo/bar/file.tar.gz
+     * becomes /foo/bar/file.tar
+     * @param string $path
+     * @return string 
+     */
+    public static function removeExtensionFromPath ($path) {
+        $str = '';
+        if ( stristr($path, '/') ) {
+            $str .= pathinfo($path, PATHINFO_DIRNAME) . "/";
+        }
+        $str .= pathinfo($path, PATHINFO_FILENAME);
+        return $str;
+    }
+    
     public static function getTidyOpts() {
         return self::$tidyOpts;
     }
@@ -540,7 +555,7 @@ class SpecialHtml2Wiki extends SpecialPage {
                     // case ( preg_match('#(?:htmldocs|html)/.*\.html?$#i', $entry)? $entry : '' ): #10,865
                     case ( preg_match('#htmldocs/.*\.html?$#i', $entry) ? $entry : '' ): #1,112
                         // a temporary filter to process a small number of files
-                        if ( preg_match('#advanced_topics#', $entry) ) {
+                        if ( preg_match('#advanced_topics|axi_user#', $entry) ) {
                             $availableFiles[] = $entry;
                             $this->mIsVIP = true;
                         }
@@ -550,7 +565,7 @@ class SpecialHtml2Wiki extends SpecialPage {
                     // case ( preg_match('#(?:htmldocs|html)/.*/images/.*\.(?:jpe?g|png|gif)$#i', $entry)? $entry : '' ): #715
                     case ( preg_match('#htmldocs/.*/images/.*\.(?:jpe?g|png|gif)$#i', $entry) ? $entry : '' ):  #511
                         // a temporary filter to process a small number of files
-                        if ( preg_match('#vip#', $entry) ) {
+                        if ( preg_match('#vip|axi#', $entry) ) {
                             $availableImages[] = $entry;
                         }
                         break;
@@ -811,7 +826,7 @@ HERE
         $image = wfLocalFile( $title );            
         $result = $image->upload($tmpFile, $comment, $pageText);
         if ($result !== false ) {
-            $out->addWikiText('<div class="success">' . $title . ' was ' . $actionverb . '. See [[' . $title . ']]</div>');
+            $out->addWikiText('<div class="success">' . $title . ' was ' . $actionverb . '. See [[:' . $title . ']] [[' . $title . '|thumb]]</div>');
             $logEntry = new ManualLogEntry('html2wiki', 'import'); // Log action 'import' in the Special:Log for 'html2wiki'
             $logEntry->setPerformer($user); // User object, the user who performed this action
             $logEntry->setTarget($title); // The page that this log entry affects, a Title object
@@ -1175,6 +1190,7 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
             $href = $anchor->attr('href');
             $absolutePath = "$fullpath/{$href}";
             // NO need to get rid of any ../ because it will still work
+            $absolutePath = self::removeExtensionFromPath($absolutePath);
             $anchor->attr('href', $absolutePath);
         }
         ob_start();
@@ -1222,7 +1238,7 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
      * 
      */
     public function qpAlterImageLinks () {
-        $fullpath = ($this->mCollectionName)? "/{$this->mCollectionName}/{$this->mArticleSavePath}" : "/{$this->mArticleSavePath}";
+        $fullpath = ($this->mCollectionName)? "{$this->mCollectionName}/{$this->mArticleSavePath}/" : "{$this->mArticleSavePath}/";
         $qp = htmlqp ($this->mContent, 'img');
         foreach ($qp as $img) {
             $title = $img->parent('.pFigureTitle')->text();
