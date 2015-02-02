@@ -462,7 +462,6 @@ class SpecialHtml2Wiki extends SpecialPage {
 
                 // unwrap the file
                 $this->unwrapZipFile();
-                $this->saveImages();
                 break;
 
             case 'text/html':
@@ -571,27 +570,23 @@ class SpecialHtml2Wiki extends SpecialPage {
         // wfDebug( __METHOD__ . ": done with first inventory of zip archive" );
         if ($this->mIsVIP) {
             $imageCount = 0;
-            $this->mImages = array();
             // echo "Now we're processing a VIP Info Hubs zip\n";
             $zipHandle = zip_open($zipfile);
             if (is_resource($zipHandle)) {
                 while ($zip_entry = zip_read($zipHandle)) {
                     $entry = zip_entry_name($zip_entry);
                     
-                    // First we'll process HTML files
+                    // Process HTML files
                     if ( in_array($entry, $availableFiles) ) {
                         $this->mFileCountExpected += 1;
-
                         $this->mFilename = zip_entry_name($zip_entry);
                         $this->mFilesize = zip_entry_filesize($zip_entry);
                         $this->mMimeType = 'text/html'; // we'll spoof it for now.
-
                         if (zip_entry_open($zipHandle, $zip_entry, "r")) {
                             $this->mContent = $this->mContentRaw = 
                                     zip_entry_read($zip_entry, zip_entry_filesize($zip_entry));
                             zip_entry_close($zip_entry);
                         }
-                        
                         // mArticleSavePath equals the value of mCollectionName (if any) plus any intermediate path elements NOT including the file name
                         // The mCollectionName will get added in during the call to qpMakeLinksAbsolute()
                         $this->mArticleSavePath = pathinfo($this->mFilename, PATHINFO_DIRNAME);
@@ -599,34 +594,31 @@ class SpecialHtml2Wiki extends SpecialPage {
                         $this->mArticleTitle = ($this->mCollectionName)? "{$this->mCollectionName}/{$this->mFilename}" : $this->mFilename;
                         $path = $this->mArticleTitle;
                         $this->mArticleTitle = pathinfo($path, PATHINFO_DIRNAME) . "/" . pathinfo($path, PATHINFO_FILENAME);
-
                         $this->processFile();
                     }
 
-                    // We'll take all the images we find and create an array of 
-                    // necessary info that we can pass to saveImages();
+                    // Process Images
                     if ( in_array($entry, $availableImages) ) {
-                        // wfDebug( __METHOD__ . ": saw $entry" );
                         // remove 'images/' from the path because we don't want that in our final title
                         $this->mFilename = str_replace( 'images/', '', zip_entry_name($zip_entry) );
                         $this->mFilesize = zip_entry_filesize($zip_entry);
-                        // $this->mMimeType = 'image/jpg'; // we'll spoof it for now.
-                        $this->mImages[$imageCount]['title'] = ($this->mCollectionName)? "{$this->mCollectionName}/{$this->mFilename}" : $this->mFilename;
-                        $this->mImages[$imageCount]['filesize'] = $this->mFilesize;
+                        $this->mComment = "Html2Wiki imported {$this->mFilename} (" . $this->formatValue($this->mFilesize) . ")";
+                        // $this->mMimeType = 'image/jpg'; // don't spoof  upload() will get the proper mimetype and handler
+                        $this->mArticleTitle = ($this->mCollectionName)? "{$this->mCollectionName}/{$this->mFilename}" : $this->mFilename;
                         if (zip_entry_open($zipHandle, $zip_entry, "r")) {
                             $buf = zip_entry_read($zip_entry, zip_entry_filesize($zip_entry));
                             zip_entry_close($zip_entry);
                         }
-                        $this->mImages[$imageCount]['tmpfile'] = $this->makeTempFile($buf);
+                        $tmpFile = $this->makeTempFile($buf);
                         unset($buf);
+                        $this->saveImage($tmpFile);
                         $imageCount++;
                     }
                 }
-                // wfDebug( __METHOD__ . ": imageCount is $imageCount" );
                 // check if mFileCountExpected = mFileCountProcessed and close the handle
                 zip_close($zipHandle);
             }
-            // wfDebug( __METHOD__ . ": done with second pass through zip archive" );
+        wfDebug( __METHOD__ . ": processed $imageCount images" );
         } else {
             $out->addHTML('<div><pre>');
             $out->addHTML('not VIP');
@@ -801,45 +793,37 @@ HERE
     }
     
     /**
-     * afer processing (all) file(s), we have a list of images to import
+     * Save an image in the File namespace
+     * 
      */
-    public function saveImages() {
+    public function saveImage($tmpFile) {
         global $wgH2WProcessImages;
         if ( $wgH2WProcessImages === false ) {
             return true;
         }
-        
         $out = $this->getOutput();
         $user = $this->getUser();
-        
-        $images = $this->mImages;
-        if (!is_array($images) || count($images) < 1 ) {
-            die('No images to save');
-        }
         // @todo, modify this so we can enter dynamic $comment and $pageText
-        $comment = "imported by Html2Wiki";
+        $comment = $this->mComment;
         $pageText = "[[Category:Html2Wiki]] [[Category:VIP]]";
 
-        foreach ($images as $item) {
-            // wfDebug( __METHOD__ . ": processing {$item['title']}" ); // @todo remove this later or set it only to log
-            $title = Title::makeTitleSafe( NS_FILE, $item['title'] );
-            $image = wfLocalFile( $title );            
-            $result = $image->upload($item['tmpfile'], $comment, $pageText);
-            if ($result !== false ) {
-                $out->addWikiText('<div class="success">' . $title . ' was ' . $actionverb . '. See [[' . $title . ']]</div>');
-                $logEntry = new ManualLogEntry('html2wiki', 'import'); // Log action 'import' in the Special:Log for 'html2wiki'
-                $logEntry->setPerformer($user); // User object, the user who performed this action
-                $logEntry->setTarget($title); // The page that this log entry affects, a Title object
-                $logEntry->setComment($this->mComment);
-                $logid = $logEntry->insert();
-                // optionally publish the log item to recent changes
-                $logEntry->publish( $logid );
-            } else {
-                die("failed to upload {$item['tmpfile']}");
-            }
-            unlink($item['tmpfile']);
+        $title = $this->makeTitle( NS_FILE );
+        $image = wfLocalFile( $title );            
+        $result = $image->upload($tmpFile, $comment, $pageText);
+        if ($result !== false ) {
+            $out->addWikiText('<div class="success">' . $title . ' was ' . $actionverb . '. See [[' . $title . ']]</div>');
+            $logEntry = new ManualLogEntry('html2wiki', 'import'); // Log action 'import' in the Special:Log for 'html2wiki'
+            $logEntry->setPerformer($user); // User object, the user who performed this action
+            $logEntry->setTarget($title); // The page that this log entry affects, a Title object
+            $logEntry->setComment($this->mComment);
+            $logid = $logEntry->insert();
+            // optionally publish the log item to recent changes
+            $logEntry->publish( $logid );
+        } else {
+            die("failed to upload $tmpFile");
         }
-        // images saved
+        return unlink($tmpFile);
+        // image saved
     }
 
     private function makeTitle($namespace = NS_MAIN) {
