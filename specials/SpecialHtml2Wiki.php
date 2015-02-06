@@ -47,8 +47,8 @@ class SpecialHtml2Wiki extends SpecialPage {
      */
     private $mCollectionName;
     protected $mArticleSavePath;
-    public $mIsVIP; // we're purpose built to detect and handle two types of zipped content
-    public $mIsUVM;
+    public $mIsRecognized; // we're purpose built to detect and handle two types of zipped content
+
     public $mImages;  // an array of image files that should be imported
     public $mFilesAreProcessed; // boolean, whether we've (uploaded and) processed content files
     public $mResults; // the HTML-formatted result report of an import
@@ -531,8 +531,8 @@ class SpecialHtml2Wiki extends SpecialPage {
         // wfDebug( __METHOD__ . ": unzipping stuff" );
         // blank out our per-file data
         $this->mMimeType = $this->mFilename = $this->mFilesize = '';
-        $this->IsVIP = false;
-        $this->IsUVM = false;
+        $this->IsRecognized = false;
+        
         $out = $this->getOutput();
         $zipfile = $_FILES['userfile']['tmp_name'];
 // $zipfile = __DIR__ . '/data/vip-info-hub-docs-for-wiki-import.zip';
@@ -551,27 +551,30 @@ class SpecialHtml2Wiki extends SpecialPage {
                 $entry = zip_entry_name($zip_entry);
                 switch ($entry) {
 
-                    // The html/ folder adds almost 1,000% more files
-                    // case ( preg_match('#(?:htmldocs|html)/.*\.html?$#i', $entry)? $entry : '' ): #10,865
-                    case ( preg_match('#htmldocs/.*\.html?$#i', $entry) ? $entry : '' ): #1,112
+                    // The html/ folder adds almost 1,000% more files in the case of VIP Info Hubs
+                    // case ( preg_match('#(?:htmldocs|html)/.*\.html?$#i', $entry)? $entry : '' ): #10,865  This matches VIP content plus the 'html' folder as well
+                    case ( preg_match('#htmldocs/.*\.html?$#i', $entry) ? $entry : '' ): #1,112  // This matches VIP content
+                    case ( preg_match('#docs/html/files/.*\.html?$#i', $entry) ? $entry : '' ):  // This is for UVM content
                         // a temporary filter to process a small number of files
-                        if ( preg_match('#advanced_topics|axi_user#', $entry) ) {
+                        // if ( preg_match('#advanced_topics|axi_user#', $entry) ) {
                             $availableFiles[] = $entry;
-                            $this->mIsVIP = true;
-                        }
+                            //$this->mIsRecognized = true;
+                        //}
                         break;
 
                     // The html/ folder adds 40% more images
                     // case ( preg_match('#(?:htmldocs|html)/.*/images/.*\.(?:jpe?g|png|gif)$#i', $entry)? $entry : '' ): #715
                     case ( preg_match('#htmldocs/.*/images/.*\.(?:jpe?g|png|gif)$#i', $entry) ? $entry : '' ):  #511
+                    case ( preg_match('#docs/html/images/.*\.(?:jpe?g|png|gif)$#i', $entry) ? $entry : '' ):  // This is for UVM content
                         // a temporary filter to process a small number of files
-                        if ( preg_match('#vip|axi#', $entry) ) {
+                        // if ( preg_match('#vip|axi#', $entry) ) {
                             $availableImages[] = $entry;
-                        }
+                        //}
                         break;
 
                     case 'docs/htmldocs/':
-                        $this->mIsVIP = true;
+                    case 'docs/html/files/':
+                        $this->mIsRecognized = true;
                         break;
 
                     default:
@@ -583,7 +586,7 @@ class SpecialHtml2Wiki extends SpecialPage {
             zip_close($zipHandle);
         }
         // wfDebug( __METHOD__ . ": done with first inventory of zip archive" );
-        if ($this->mIsVIP) {
+        if ($this->mIsRecognized) {
             $imageCount = 0;
             // echo "Now we're processing a VIP Info Hubs zip\n";
             $zipHandle = zip_open($zipfile);
@@ -636,7 +639,7 @@ class SpecialHtml2Wiki extends SpecialPage {
         wfDebug( __METHOD__ . ": processed $imageCount images" );
         } else {
             $out->addHTML('<div><pre>');
-            $out->addHTML('not VIP');
+            $out->addHTML('This zip archive is not recognized');
             $out->addHTML(print_r($availableFiles, true));
             $out->addHTML('</pre></div>');
         }
@@ -796,8 +799,13 @@ HERE
         // so we can qpItalics before running panDoc2Wiki()
         $this->panDoc2Wiki();
         // $this->qpRewriteImages();
-        // $this->substituteTemplates();
-        // $this->autoCategorize();
+        $this->substituteTemplates();
+        $this->autoCategorize();
+        // @todo turn this into a function, and ensure that the CollectionName 
+        // is safe for a Category Name
+        if ($this->mCollectionName) {
+            $this->mContent .= "\n[[Category:{$this->mCollectionName}]]";
+        }        
         // $this->showRaw();
         // $this->showContent();
         $this->saveArticle();
@@ -826,7 +834,7 @@ HERE
         $image = wfLocalFile( $title );            
         $result = $image->upload($tmpFile, $comment, $pageText);
         if ($result !== false ) {
-            $out->addWikiText('<div class="success">' . $title . ' was ' . $actionverb . '. See [[:' . $title . ']] [[' . $title . '|thumb]]</div>');
+            $out->addWikiText('<div class="success">' . $title . ' was uploaded.  See [[:' . $title . ']] [[' . $title . '|thumb]]</div>');
             $logEntry = new ManualLogEntry('html2wiki', 'import'); // Log action 'import' in the Special:Log for 'html2wiki'
             $logEntry->setPerformer($user); // User object, the user who performed this action
             $logEntry->setTarget($title); // The page that this log entry affects, a Title object
@@ -1392,8 +1400,18 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
         return $return;        
     }
     
+    /**
+     * We have a lot of trouble parsing documents that have multiple anchors
+     * with similar name attributes, because the spec treats a name attribute
+     * the same as an id attribute on an anchor tag.  Either use htmlqp() which
+     * seems to ignore this problem, or else set libxml_use_internal_errors() 
+     * function to ignore the warnings. ie. libxml_use_internal_errors(true);
+     * @see http://php.net/manual/en/domdocument.loadhtml.php
+     * @see http://www.w3.org/TR/html401/struct/links.html#h-12.2.1
+     */
     public function qpRemoveMouseOvers() {
-        $qp = qp($this->mContent, 'body')->find("a:link");
+        // $qp = htmlqp($this->mContent, 'body')->find("a:link");
+        $qp = htmlqp($this->mContent, 'a:link');
         foreach ($qp as $anchor) {
             $anchor->removeAttr('onclick'); // vip
             $anchor->removeAttr('onmouseover'); // uvm

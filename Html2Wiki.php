@@ -59,28 +59,28 @@ EOT;
     die(1);
 }
 
+/* Setup */
+define( 'HTML2WIKI_VERSION', '2015.02' );
+
 /**
  * Add in a version compatibility check
  * I'm unsure what version we will require, but this is how you do it
- */
+ *
 if (version_compare($wgVersion, '1.21', '<')) {
     die("This extension requires MediaWiki 1.21+\n");
 }
-
+*/
 $wgExtensionCredits['other'][] = array(
     'path' => __FILE__,
     'name' => 'Html2Wiki',
     'author' => array(
         'Greg Rundlett',
     ),
-    'version' => '0.1.0',
+    'version' => HTML2WIKI_VERSION,
     'url' => 'https://www.mediawiki.org/wiki/Extension:Html2Wiki',
     'descriptionmsg' => 'html2wiki-desc',
     'license-name' => 'GPL-2.0+', // GNU General Public License v2.0 or later
 );
-
-/* Setup */
-define( 'HTML2WIKI_VERSION', '0.1' );
 
 /* Options:
  * $wgH2WEliminateDuplicateImages boolean true
