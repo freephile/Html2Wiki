@@ -153,6 +153,69 @@ class SpecialHtml2Wiki extends SpecialPage {
     public $uploadFormTextTop;
     public $uploadFormTextAfterSummary;
 
+    
+    
+    
+    /**
+     * Shows the page to the user.
+     * @param string $sub: The subpage string argument (if any).
+     *  [[Special:HelloWorld/subpage]].
+     */
+    public function execute($sub) {
+        /**
+         * @since 1.23 we can create our own Config object
+         * @link https://www.mediawiki.org/wiki/Manual:Configuration_for_developers
+
+          $wgConfigRegistry['html2wiki'] = 'GlobalVarConfig::newInstance';
+          // Now, whenever you want your config object
+          // $conf = ConfigFactory::getDefaultInstance()->makeConfig( 'html2wiki' );
+         */
+        $out = $this->getOutput();
+
+        $out->setPageTitle($this->msg('html2wiki-title'));
+
+        /**
+         * Restrict access to the importing of content.
+         * Use the same approach as Special:Import since if you're
+         * allowed to import wiki content, we'll also allow you to import
+         * HTML content.
+         */
+        $user = $this->getUser();
+        /** @todo turn on this permission check
+          if ( !$user->isAllowedAny( 'import', 'importupload' ) ) {
+          throw new PermissionsError( 'import' );
+          }
+         */
+        // Even without the isAllowsedAny check, the anonymous user sees
+        // 'No transwiki import sources have been defined and direct history uploads are disabled.'
+        # @todo Allow Title::getUserPermissionsErrors() to take an array
+        # @todo FIXME: Title::checkSpecialsAndNSPermissions() has a very wierd expectation of what
+        # getUserPermissionsErrors() might actually be used for, hence the 'ns-specialprotected'
+        $errors = wfMergeErrorArrays(
+                $this->getPageTitle()->getUserPermissionsErrors(
+                        'import', $user, true, array('ns-specialprotected', 'badaccess-group0', 'badaccess-groups')
+                ), $this->getPageTitle()->getUserPermissionsErrors(
+                        'importupload', $user, true, array('ns-specialprotected', 'badaccess-group0', 'badaccess-groups')
+                )
+        );
+
+        if ($errors) {
+            throw new PermissionsError('import', $errors);
+        }
+        // from parent, throw an error if the wiki is in read-only mode
+        $this->checkReadOnly();
+        $request = $this->getRequest();
+        if ($request->wasPosted() && $request->getVal('action') == 'submit') {
+            $this->loadRequest();
+            $this->doImport();
+        } else {
+            $this->showForm();
+        }
+    }
+
+    
+    
+    
     protected function loadRequest() {
         $this->mRequest = $request = $this->getRequest();
         // get the value from the form, or use the default defined in the language messages
@@ -231,89 +294,8 @@ class SpecialHtml2Wiki extends SpecialPage {
         return $str;
     }
     
-    public static function getTidyOpts() {
-        return self::$tidyOpts;
-    }
+    
 
-    /**
-     * You can get the mimetype of an arbitrary file in bash with 
-     * file --mime-type $file
-     * 
-     * @param $file string
-     * @return bool|string
-     */
-    public static function getMimeType($file) {
-        $realpath = realpath($file);
-        if (
-                $realpath && function_exists('finfo_file') && function_exists('finfo_open') && defined('FILEINFO_MIME_TYPE')
-        ) {
-            $mimeType = finfo_file(finfo_open(FILEINFO_MIME_TYPE), $realpath);
-            if (array_search($mimeType, self::$mimeTypes)) {
-                return $mimeType;
-            } else {
-                return false; // not allowed type
-            }
-        } else {
-            // Infer the MIME-type from the file extension
-            $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-            if (isset(self::$mimeTypes[$ext])) {
-                return self::$mimeTypes[$ext];
-            }
-        }
-        // neither approach worked, or mimeType not allowed
-        return false;
-    }
-
-    /**
-     * Initialize instance variables from request and create an Upload handler
-     * @todo review and cull the methods that we use here
-     * This method was copied from Special:Upload assuming it would be 
-     * applicable to our use case.
-
-      protected function loadRequest() {
-      $this->mRequest = $request = $this->getRequest();
-      $this->mSourceType = $request->getVal( 'wpSourceType', 'file' );
-      // @todo What can we use besides UploadBase because we don't want to store file types: HTML and zip?
-      //
-      $this->mUpload = UploadBase::createFromRequest( $request );
-      $this->mUploadClicked = $request->wasPosted()
-      && ( $request->getCheck( 'wpUpload' )
-      || $request->getCheck( 'wpUploadIgnoreWarning' ) );
-
-      // Guess the desired name from the filename if not provided
-      $this->mDesiredDestName = $request->getText( 'wpDestFile' );
-      if ( !$this->mDesiredDestName && $request->getFileName( 'wpUploadFile' ) !== null ) {
-      $this->mDesiredDestName = $request->getFileName( 'wpUploadFile' );
-      }
-      $this->mLicense = $request->getText( 'wpLicense' );
-
-      $this->mDestWarningAck = $request->getText( 'wpDestFileWarningAck' );
-      $this->mIgnoreWarning = $request->getCheck( 'wpIgnoreWarning' )
-      || $request->getCheck( 'wpUploadIgnoreWarning' );
-      $this->mWatchthis = $request->getBool( 'wpWatchthis' ) && $this->getUser()->isLoggedIn();
-      $this->mCopyrightStatus = $request->getText( 'wpUploadCopyStatus' );
-      $this->mCopyrightSource = $request->getText( 'wpUploadSource' );
-
-      $this->mForReUpload = $request->getBool( 'wpForReUpload' ); // updating a file
-
-      $commentDefault = '';
-      $commentMsg = wfMessage( 'upload-default-description' )->inContentLanguage();
-      if ( !$this->mForReUpload && !$commentMsg->isDisabled() ) {
-      $commentDefault = $commentMsg->plain();
-      }
-      $this->mComment = $request->getText( 'wpUploadDescription', $commentDefault );
-
-      $this->mCancelUpload = $request->getCheck( 'wpCancelUpload' )
-      || $request->getCheck( 'wpReUpload' ); // b/w compat
-
-      // If it was posted check for the token (no remote POST'ing with user credentials)
-      $token = $request->getVal( 'wpEditToken' );
-      $this->mTokenOk = $this->getUser()->matchEditToken( $token );
-
-      $this->uploadFormTextTop = '';
-      $this->uploadFormTextAfterSummary = '';
-      }
-     */
 
     /**
      * Constructor : initialise object
@@ -349,61 +331,84 @@ class SpecialHtml2Wiki extends SpecialPage {
         return 'media';
     }
 
+    
     /**
-     * Shows the page to the user.
-     * @param string $sub: The subpage string argument (if any).
-     *  [[Special:HelloWorld/subpage]].
+     * You can get the mimetype of an arbitrary file in bash with 
+     * file --mime-type $file
+     * 
+     * @param $file string
+     * @return bool|string
      */
-    public function execute($sub) {
-        /**
-         * @since 1.23 we can create our own Config object
-         * @link https://www.mediawiki.org/wiki/Manual:Configuration_for_developers
-
-          $wgConfigRegistry['html2wiki'] = 'GlobalVarConfig::newInstance';
-          // Now, whenever you want your config object
-          // $conf = ConfigFactory::getDefaultInstance()->makeConfig( 'html2wiki' );
-         */
-        $out = $this->getOutput();
-
-        $out->setPageTitle($this->msg('html2wiki-title'));
-
-        /**
-         * Restrict access to the importing of content.
-         * Use the same approach as Special:Import since if you're
-         * allowed to import wiki content, we'll also allow you to import
-         * HTML content.
-         */
-        $user = $this->getUser();
-        /** @todo turn on this permission check
-          if ( !$user->isAllowedAny( 'import', 'importupload' ) ) {
-          throw new PermissionsError( 'import' );
-          }
-         */
-        // Even without the isAllowsedAny check, the anonymous user sees
-        // 'No transwiki import sources have been defined and direct history uploads are disabled.'
-        # @todo Allow Title::getUserPermissionsErrors() to take an array
-        # @todo FIXME: Title::checkSpecialsAndNSPermissions() has a very wierd expectation of what
-        # getUserPermissionsErrors() might actually be used for, hence the 'ns-specialprotected'
-        $errors = wfMergeErrorArrays(
-                $this->getPageTitle()->getUserPermissionsErrors(
-                        'import', $user, true, array('ns-specialprotected', 'badaccess-group0', 'badaccess-groups')
-                ), $this->getPageTitle()->getUserPermissionsErrors(
-                        'importupload', $user, true, array('ns-specialprotected', 'badaccess-group0', 'badaccess-groups')
-                )
-        );
-
-        if ($errors) {
-            throw new PermissionsError('import', $errors);
-        }
-        // from parent, throw an error if the wiki is in read-only mode
-        $this->checkReadOnly();
-        $request = $this->getRequest();
-        if ($request->wasPosted() && $request->getVal('action') == 'submit') {
-            $this->loadRequest();
-            $this->doImport();
+    public static function getMimeType($file) {
+        $realpath = realpath($file);
+        if (
+                $realpath && function_exists('finfo_file') && function_exists('finfo_open') && defined('FILEINFO_MIME_TYPE')
+        ) {
+            $mimeType = finfo_file(finfo_open(FILEINFO_MIME_TYPE), $realpath);
+            if (array_search($mimeType, self::$mimeTypes)) {
+                return $mimeType;
+            } else {
+                return false; // not allowed type
+            }
         } else {
+            // Infer the MIME-type from the file extension
+            $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+            if (isset(self::$mimeTypes[$ext])) {
+                return self::$mimeTypes[$ext];
+            }
+        }
+        // neither approach worked, or mimeType not allowed
+        return false;
+    }
+    
+    public static function getTidyOpts() {
+        return self::$tidyOpts;
+    }
+
+    /**
+     * Do the import which consists of three phases:
+     * 1) Select and/or Upload user nominated files 
+     * 2) pre-process, filter, and convert them to wikitext 
+     * 3) Create the articles, and images
+     */
+    private function doImport() {
+
+        global $wgOut;
+        $wgOut->addModules('ext.Html2Wiki');
+
+        if ( $this->doUpload() ) {
+            $this->mFilesAreProcessed = ($this->mFileCountExpected == $this->mFileCountProcessed)? true : false;
+            if ( $this->mFilesAreProcessed ) {
+                $this->showResults();
+            } else {
+                $this->showForm('Some files were not processed');
+            }
+        } else {
+            // @todo This should be an error report, not a form.
             $this->showForm();
         }
+        return true;
+    }
+
+    /**
+     * This method was used in testing/development to work on a file that is local
+     * to the server.  We could re-implement this if working on local files is desired
+     * @param type $file
+     * @return boolean
+     */
+    private function doLocalFile($file) {
+        $out = $this->getOutput();
+        if (!file_exists($file)) {
+            $out->wrapWikiMsg(
+                    "<p class=\"error\">\n$1\n</p>", array('html2wiki_filenotfound', $file)
+            );
+            return false;
+        }
+        $this->mLocalFile = $file;
+        $this->mFilename = basename($file);
+        $this->mContentRaw = file_get_contents($file);
+        $this->mFilesize = filesize($file);
+        return true;
     }
 
     /**
@@ -516,28 +521,6 @@ class SpecialHtml2Wiki extends SpecialPage {
         // we know about all the images that are referenced, make sure they are
         // in the wiki
         return $this->mFilesAreProcessed;
-    }
-
-    
-    /**
-     * This method was used in testing/development to work on a file that is local
-     * to the server.  We could re-implement this if working on local files is desired
-     * @param type $file
-     * @return boolean
-     */
-    private function doLocalFile($file) {
-        $out = $this->getOutput();
-        if (!file_exists($file)) {
-            $out->wrapWikiMsg(
-                    "<p class=\"error\">\n$1\n</p>", array('html2wiki_filenotfound', $file)
-            );
-            return false;
-        }
-        $this->mLocalFile = $file;
-        $this->mFilename = basename($file);
-        $this->mContentRaw = file_get_contents($file);
-        $this->mFilesize = filesize($file);
-        return true;
     }
 
     /**
@@ -682,7 +665,6 @@ class SpecialHtml2Wiki extends SpecialPage {
     private function showRaw() {
         $out = $this->getOutput();
         $out->addModules(array('ext.Html2Wiki')); // add our javascript and css
-        //$this->mContent = $this->findBody();
         $out->addHTML('<div class="mw-ui-button-group">'
                 . '<button class="mw-ui-button mw-ui-progressive" '
                 . 'form="html2wiki-form" formmethod="post" id="h2wWand" name="h2wWand">'
@@ -714,16 +696,12 @@ class SpecialHtml2Wiki extends SpecialPage {
         }
     }
 
-    private function showResults() {
-        $out = $this->getOutput();
-        $out->addHTML('<div id="h2wContent"><ul class="mw-ext-Html2Wiki">' . $this->mResults . '</ul></div>');
-    }
     private function addFileToResults() {
         $this->mFileCountProcessed += 1;
         $size = $this->formatValue($this->mFilesize);
         $this->mResults .= "<li>{$this->mFilename} ({$size}) {$this->mMimeType}</li>\n";
     }
-
+    
     private function listFile() {
         $out = $this->getOutput();
         $out->addModules(array('ext.Html2Wiki')); // add our javascript and css
@@ -736,57 +714,33 @@ HERE
         );
     }
 
-    /** Don't really need this because we're doing it with Tidy
-     * Tidy will correct errors AND give us the body
-     * @return type
-     */
-    private function findBody() {
+    private function showResults() {
         $out = $this->getOutput();
-        $content = $this->mContentRaw;
-        $pattern = '#<body[^>]*>(.*)</body>#';
-        $foundBody = preg_match_all($pattern, $content, $matches);
-        if ($foundBody && count($matches) === 2) {
-            return $matches[1];
-        } else {
-            $out->wrapWikiMsg(
-                    "<p class=\"error\">\n$1\n</p>", array('html2wiki_multiple_body', $content)
-            );
-        }
+        $out->addHTML('<div id="h2wContent"><ul class="mw-ext-Html2Wiki">' . $this->mResults . '</ul></div>');
     }
 
     private function escapeContent() {
         return nl2br(htmlentities($this->mContent, ENT_QUOTES | ENT_IGNORE, "UTF-8"));
     }
-
+    
     /**
-     * Do the import which consists of three phases:
-     * 1) Select and/or Upload user nominated files 
-     * 2) pre-process, filter, and convert them to wikitext 
-     * 3) Create the articles, and images
+     * Use Pandoc to convert our content to mediawiki markup
      */
-    private function doImport() {
-
-        global $wgOut;
-        $wgOut->addModules('ext.Html2Wiki');
-
-        if ( $this->doUpload() ) {
-            // if($this->doLocalFile("/vagrant/mediawiki/extensions/Html2Wiki/data/uvm-1.1d/docs/html/files/base/uvm_printer-svh.html")) {
-            // if($this->doLocalFile("/vagrant/mediawiki/extensions/Html2Wiki/data/docs/htmldocs/mgc_html_help/overview04.html")) {
-            
-            $this->mFilesAreProcessed = ($this->mFileCountExpected == $this->mFileCountProcessed)? true : false;
-            if ( $this->mFilesAreProcessed ) {
-                $this->showResults();
-            } else {
-                $this->showForm('Some files were not processed');
-            }
-        } else {
-            // @todo This should be an error report, not a form.
-            $this->showForm();
-        }
-        return true;
+    public function panDoc2Wiki() {
+        $tempfilename = $this->makeTempFile($this->mContent);
+        // file_put_contents($stage/$tempfilename, $this->mContent);
+        $this->mContent = shell_exec("pandoc -f html -t mediawiki $tempfilename");
+        unlink($tempfilename);
     }
 
     /**
+     * Processing a file is done in five phases:
+     * 1) Tidy tries to normalize the file
+     * 2) filter / alter content based on what we know about it's peculiarities
+     * 3) convert it to wikitext using Pandoc
+     * 4) post-process wikitext
+     * 5) save it
+     * 
      * $this->mArticleSavePath, $this->mArticleTitle already set
      * @return boolean
      */
@@ -799,19 +753,15 @@ HERE
         
         // Tidy now works on mContent even when in fallback mode for MediaWiki-Vagrant
         $this->tidyup(self::getTidyOpts());
-        // $this->tidyup();// with nothing, it should default to reading the config file
-        $this->mContent = self::qpCleanVIP($this->mContent);
         
-        // CleanLinks is a stronger version of RemoveMouseOvers
+        $this->mContent = self::qpCleanVIP($this->mContent);
+        // qpCleanLinks is a stronger version of qpRemoveMouseOvers
         //$this->qpCleanLinks();
         // Remove mouseovers and onclick handlers in links
         $this->qpRemoveMouseOvers();
         // turn <a name="foo"></a> to <span name="foo"></span> for intradocument links
         $this->mContent = self::qpLinkToSpan($this->mContent);
         // fix up relative links
-        // $this->qpMakeLinksAbsolute('a:link', 'href');
-        // $this->qpMakeLinksAbsolute('img', 'src');
-        // $this->qpMakeLinksStatic('img', 'src');
         $this->qpNormalizeLinks('a:link', 'href');
         $this->qpNormalizeLinks('img', 'src');
         
@@ -1082,6 +1032,9 @@ HERE
      * @todo capture Tidy errors for logging or display?
      * see http://stackoverflow.com/questions/6472102/redirecting-i-o-in-php
      * @todo figure out if we need to use "force" option in Tidy?
+     * 
+     * eg. $this->tidyup();
+     * with no args, it should default to reading the config file
      */
     public function tidyup($tidyConfig = NULL) {
         if ($this->mMimeType !== 'text/html') {
@@ -1188,62 +1141,23 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
       }
      * but QueryPath offers a CSS parser to more easily specify document objects
      * 
-     * This function "fixes" relative links so that we know the full path of 
-     * document links and image links.  This way we can rewrite them properly.
-     * 
-     * This function is not recursive, so it will need to be called successively
-     * for each time an attribute contains '../'
      */
-    public function qpAddParentToLink($parent) {
-        $qp = qp($this->mContent);
-        $anchors = $qp->find("a");
-        if ( $anchors->length == 0 ) {
-            return false;
-        }
-        foreach ($anchors as $anchor) {
-            $href = $anchor->attr('href');
-            if (substr($href, 0, 1) == '#') {
-                // leave intra document links alone
-            } else {
-                $anchor->attr('href', preg_replace('#\.\./([^.]*)#', "$parent/$1", $href));
-            }
-            // print( $anchor->attr('href') . "<br />" . PHP_EOL );
-        }
-        // now go back to the top and fix relative image sources
-        $ea = $qp->top()->find('img');
-        foreach ($ea as $image) {
-            $src = $image->attr('src');
-            $image->attr( 'src', preg_replace('#\.\./([^.]*)#', "$parent/$1", $src) ); 
-         }
-        $qp->top();
-        ob_start();
-        $qp->writeHTML();
-        $this->mContent = ob_get_clean();
-        return true;
-    }
     
     /**
-     * This utility function is for adding a path element to relative links
-     * such as <a href="../../../some/other/file.html">
+     * Function to convert relative links to their wikified equivalents to preserve
+     * the imported collection's relative hierarchy in the wiki for imported Collections.  
      * 
-     * By using a regex and including the non-period character, we ensure
-     * that processing is done right-to-left.  And by going right to left, we
-     * can pop the stack for $this->mArticleSavePath
+     * Multi-variant, works on images and anchors
      * 
-     * If we have CN/docs/html/files/example/conversion/converter.html
-     * and we're processing converter.html which has a link to 
-     * ../../../images/foo.jpg  The result of calling this function repeatedly
-     * will be <img src=
+     * @global type $wgH2WEliminateDuplicateImages
+     * @param string $selector is a CSS3 selector
+     * @param string $attribute the corresponding element attribute. either src/href
+     * @return boolean
      * 
-     * @param string $replacement a parent directory name
-     * @param string $subject the src or href attribute that we're rebuilding
-     * @return string The (partially?) reconstituted attribute.
+     * @usage example
+        $this->qpNormalizeLinks('a:link', 'href');
+        $this->qpNormalizeLinks('img', 'src');
      */
-    public static function replaceDots ($replacement, $subject) {
-        $subject = preg_replace('#\.\./([^.*])#', "$replacement/$1", $subject);
-        return $subject;
-    }
-    
     public function qpNormalizeLinks ($selector, $attribute) {
         global $wgH2WEliminateDuplicateImages;
         $qp = htmlqp($this->mContent, $selector);
@@ -1264,7 +1178,7 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
             if( substr(${$attribute}, 0, 1) == '#' ) {
                 continue;
             }
-
+            // how deep is this relative link
             $levels = substr_count(${$attribute}, '../');
             if ($levels) {
                 $anchor = array_slice($arrPath, 0, count($arrPath)-$levels);
@@ -1295,11 +1209,18 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
     }
     
     /**
+     * Creates a title attribute for an image tag using the file name.
+     * 
+     * Optionally can strip a path element from the src attribute
+     * 
+     * @var $removePathElement is a string that will be stripped from the resultant image
+     * tag src attribute
+     * @return boolean true on completion
+     * 
+     * @see also: $wgH2WEliminateDuplicateImages
+     * 
      * For some collections of html content, all the images are in a
-     * single folder 'images', or 'img', or 'assets'.
-     *
-     * Static in the function name just means that images are "contained" in a 
-     * common sub-directory of the source content and destination.  Thus the 
+     * single folder such as 'images', or 'img', or 'assets'. Thus the 
      * src attributes for all imported images will be the same, aka 'static', up
      * to but not including the final filename.
      * 
@@ -1307,100 +1228,20 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
      * be interspersed throughout the collection of html, and thus have varying
      * image paths.
      * 
-     * We don't need long static paths. It serves no purpose to have an image reside at 
-     * UVM2.2/docs/html/images/illustration.png when we can more simply use
-     * UVM2.2/illustration.png  Thus we should import them into the wiki with just
+     * In the former case, we don't need long static paths.  It serves no purpose 
+     * to have an image reside at 
+     *   UVM2.2/docs/html/images/illustration.png v.
+     *   UVM2.2/illustration.png  
+     *
+     * Thus we should import them into the wiki with just
      * the Collection name as a distinguishing identifier.
      * 
      * The Collection name being used as an identifier means that images can differ
      * between collections.
-     * Ie. UVM2.2/illustration.png can be different than UVM2.3/illustration.png
-     * 
-     * $imagePath is a string that will be stripped from the resultant image
-     * tag.  e.g. if all images are in an 'images/' folder in the source content, 
-     * then images/ will be stripped from the resultant wikified image path.
+     *   UVM2.2/illustration.png v.
+     *   UVM2.3/illustration.png
      * 
      * 
-     * DEPRECATED
-     */
-    public function qpMakeLinksStatic ($selector, $attribute, $removePathElement='images') {
-        global $wgH2WEliminateDuplicateImages;
-        
-        $qp = htmlqp($this->mContent, $selector);
-        if ( $qp->length == 0 ) {
-            return false;
-        }
-        foreach ($qp as $item) {
-            ${$attribute} = $item->attr($attribute);
-            ${$attribute} = str_replace('../', '', ${$attribute});
-            ${$attribute} = str_replace("$removePathElement/", '', ${$attribute});
-            // prepend the Collection Name for relative links
-            if( substr(${$attribute}, 0, 4) !== 'http' ) {
-                ${$attribute} = $this->mCollectionName . "/${$attribute}";
-            }
-            // only flatten images; according to the setting of $wgH2WEliminateDuplicateImages
-            if ($attribute == 'src' && $wgH2WEliminateDuplicateImages) {
-                ${$attribute} = basename(${$attribute});
-            }
-            $item->attr($attribute, ${$attribute});
-        }
-        ob_start();
-        $qp->writeHTML();
-        $this->mContent = ob_get_clean();
-        
-        return true;
-    }
-    /**
-     * Function to convert relative links to full absolute links to preserve
-     * the Collection hierarchy in the wiki for imported Collections.  
-     * Multi-variant, works on images and anchors
-     * 
-     * @return boolean true on completion
-     * eg.
-     * qpMakeLinksAbsolute('a:link', 'href'); or
-     * qpMakeLinksAbsolute('img', 'src');
-     * 
-     * 
-     * DEPRECATED
-     */
-    public function qpMakeLinksAbsolute ($selector, $attribute) {
-        global $wgH2WEliminateDuplicateImages;
-        
-        $qp = htmlqp($this->mContent, $selector);
-        if ( $qp->length == 0 ) {
-            return false;
-        }
-        foreach ($qp as $item) {
-            ${$attribute} = $item->attr($attribute);
-            if(stristr(${$attribute}, '../')) {
-                $replacements = explode('/', $this->mArticleSavePath);
-                $replacement = array_pop($replacements);
-                while ( stristr(${$attribute}, '../') && !is_null($replacement) ) {
-                    ${$attribute} = self::replaceDots($replacement, ${$attribute});
-                }
-            }
-            // prepend the Collection Name for relative links
-            if( substr(${$attribute}, 0, 1) == '/' ) {
-                ${$attribute} = ( !empty($this->mCollectionName) )? "{$this->mCollectionName}/${$attribute}" : ${$attribute};
-            }
-            // only remove the extension on href's because we've similarly modified titles
-            if ($attribute == 'href') {
-                ${$attribute} = self::removeExtensionFromPath(${$attribute});
-            }
-            // only flatten images; according to the setting of $wgH2WEliminateDuplicateImages
-            if ($attribute == 'src') {
-                ${$attribute} = ($wgH2WEliminateDuplicateImages)? basename(${$attribute}) : ${$attribute};
-            }
-
-            $item->attr($attribute, ${$attribute});
-        }
-        ob_start();
-        $qp->writeHTML();
-        $this->mContent = ob_get_clean();
-        
-        return true;
-    }
-    /**
      * A function to change the image tags in imported documents 
      * to reflect the path that those images will be found at in the wiki.
      * 
@@ -1441,9 +1282,6 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
      * What we'll do in this function is grab the "text" portion of the parent
      * paragraph element and create a title attribute for our image.
      * 
-     * We'll also fix up the src attribue to remove the 'images/' component and 
-     * replace it with a full path of the article-- which will be the equivalent
-     * location of the image that is saved into the wiki's file namespace
      * 
      */
     public function qpAlterImageLinks ($removePathElement = null) {
@@ -1560,8 +1398,7 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
         $qp->writeHTML();
         $return = ob_get_clean();
         return $return;        
-    }
-   
+    }   
     
     /**
      * Provide a selector to transform HTML to wiki text markup for italics 
@@ -1591,11 +1428,11 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
     public function qpCleanLinks () {
         $options = array('ignore_parser_warnings'=> true);
         $qp = htmlqp($this->mContent, null, $options);
-        // first ditch all the other attributes of true anchor tags
         $anchors = $qp->find('a:link');
         if ( $anchors->length == 0 ) {
             return false;
         }
+        // first ditch all the other attributes of true anchor tags
         foreach ($anchors as $anchor) {
             $href = $anchor->attr('href');
             $linktext = $anchor->text();
@@ -1701,10 +1538,7 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
         $this->mContent = preg_replace($reComment, '', $this->mContent);
         // keep this last, because there will be a lot of blank lines generated
         $this->mContent = preg_replace($reBlankLine, '', $this->mContent);
-        /*
-          $mouseAnchors = '#<a (?:name|href)=[^>]*?(?:onMouseOver|onMouseOut)[^>]*?>(.*?)</a>#ms';
-          $this->mContent = preg_replace($mouseAnchors, "$1", $this->mContent);
-         */
+
     }
 
     /**
@@ -1738,19 +1572,6 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
             => '{{Footer}}'
         );
         $this->mContent = str_ireplace(array_keys($myReplacements), array_values($myReplacements), $this->mContent);
-    }
-
-    /**
-     * We need to eliminate or replace mouseover links because they cause problems with 
-     * DOM manipipluation as libxml can NOT read this content... it seems that Tidy 
-     * leaves multiple IDs in place, or just that libxml auto-assigns ids to named elements
-     * 
-     * Function currently unused. We can do this with QueryParse
-     */
-    public function preProcess() {
-        // <a href="#uvm_line_printer" id=link6 onMouseOver="ShowTip(event, 'tt5', 'link6')" onMouseOut="HideTip('tt5')">
-        $mouseAnchors = '#< href=[^>]*??(onMouseOver|onMouseOut)[^>]*?(.*?)</a>#ms';
-        $this->mContent = preg_replace($mouseAnchors, $this->mContent);
     }
 
     /**
@@ -1795,16 +1616,5 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
         return $tempfilename;
     }
 
-    /**
-     * Use Pandoc to convert our content to mediawiki markup
-     */
-    public function panDoc2Wiki() {
-        $tempfilename = $this->makeTempFile($this->mContent);
-        // file_put_contents($stage/$tempfilename, $this->mContent);
-        $this->mContent = shell_exec("pandoc -f html -t mediawiki $tempfilename");
-        unlink($tempfilename);
-    }
 
 }
-
-
