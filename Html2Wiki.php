@@ -83,7 +83,7 @@ $wgExtensionCredits['other'][] = array(
 );
 
 /* Options:
- * $wgH2WEliminateDuplicateImages boolean true
+ * $wgH2WEliminateDuplicateImages boolean false
  *      - when set to true, imported image (and their references)
  *        will be flattened to 
  *        [CollectionName/]image.jpg 
@@ -97,7 +97,7 @@ $wgExtensionCredits['other'][] = array(
  *        @todo create preference element in form
  */
 global $wgH2WEliminateDuplicateImages, $wgH2WProcessImages;
-$wgH2WEliminateDuplicateImages = true;
+$wgH2WEliminateDuplicateImages = false;
 $wgH2WProcessImages = true; 
 
 // we need to ensure that subpages are allowed in the main namespace

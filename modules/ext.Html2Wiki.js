@@ -163,6 +163,14 @@ jQuery(document).ready(function ($) {
 		  .appendTo( $content );
 
 	});
+    
+    /**
+     * a simple UI enhancement to add a throbber to the submit button
+     * since some uploads will take a long time.
+     */
+    $("#html2wiki-submit").click(function() {
+		$(".mw-ext-Html2Wiki-loading").show();
+	});
 
 });
 

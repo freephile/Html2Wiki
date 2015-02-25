@@ -110,8 +110,6 @@ class SpecialHtml2Wiki extends SpecialPage {
         "write-back" => 0
     );
 
-
-
     /** @todo review and cull the properties that we use here
      * These properties were copied from Special:Upload assuming they'd be 
      * applicable to our use case.
@@ -163,10 +161,13 @@ class SpecialHtml2Wiki extends SpecialPage {
         $this->mComment = $request->getText('log-comment', $commentDefault);
 
         // use the mCollectionName for tagging content.
-        // mArticleSavePath equals the value of mCollectionName (if any) plus any intermediate path elements NOT including the file name
+        // mArticleSavePath does not contain the CollectionName; equals the value any intermediate path elements NOT including the file name
         // mArticleTitle will be the full value of mCollectionName (if any) plus mArticleSavePath plus the file name MINUS any extension
         $this->mCollectionName = (string) $request->getText('collection-name');
         if (!empty($this->mCollectionName)) {
+            // remove a leading slash because Collection Names must not start with a slash
+            // and also 'save path' must be relative
+            $this->mCollectionName = ltrim( $this->mCollectionName, '/' );
             // make sure that any collection name is at least two characters
             if (strlen($this->mCollectionName) < 2) {
                 $this->showForm("Invalid Collection Name; must be greater than a single character");
@@ -177,9 +178,12 @@ class SpecialHtml2Wiki extends SpecialPage {
             // to handle zips
             if ( stristr($this->mCollectionName, '/') ) {
                 $parts = explode('/', $this->mCollectionName);
-                $this->mCollectionName = array_shift($parts); // take out the first part
-                $this->mArticleSavePath = implode('/', $parts); // back to a string
-                $this->mArticleSavePath = ( substr( $this->mArticleSavePath, -1) == '/' )? $this->mArticleSavePath : "{$this->mArticleSavePath}/";
+                $this->mCollectionName = array_shift($parts);
+                if (count($parts)) {
+                    $this->mArticleSavePath = implode('/', $parts); // back to a string
+                    // ensure a trailing slash
+                    $this->mArticleSavePath = ( substr( $this->mArticleSavePath, -1) == '/' )? $this->mArticleSavePath : "{$this->mArticleSavePath}/";
+                }
             }
             // later if we detect a zip, we'll build a different filename
             // for now, assume a single HTML upload to replace an existing collection title
@@ -193,17 +197,37 @@ class SpecialHtml2Wiki extends SpecialPage {
 
     /**
      * Takes a filepath and removes the 'extension' component
+     * 
+     * It's awkward to have titles in a wiki like example.html, so we can use
+     * this function to make that title 'example'.
+     * readme.txt will still be readme.txt unless $htmlonly is false
      * E.g. /foo/bar/file.tar.gz
      * becomes /foo/bar/file.tar
      * @param string $path
+     * @param boolean $htmlonly Only strip extensions from files named .htm(l)
      * @return string 
      */
-    public static function removeExtensionFromPath ($path) {
+    public static function removeExtensionFromPath ($path, $htmlonly = true) {
+        $path_parts = pathinfo($path);
+        // nothing to do?
+        if ( !isset($path_parts['extension']) || empty($path_parts['extension']) ) {
+            return $path;
+        }
+        $ishtml = substr( $path_parts['extension'], 0, 3 ) == 'htm';
+        if ($htmlonly &&  !$ishtml) {
+            return $path;
+        }
+        
         $str = '';
         if ( stristr($path, '/') ) {
-            $str .= pathinfo($path, PATHINFO_DIRNAME) . "/";
+            $str .= $path_parts['dirname'] . '/';
         }
-        $str .= pathinfo($path, PATHINFO_FILENAME);
+        $str .= $path_parts['filename'];
+        $ext = $path_parts['extension'];
+        if ( stristr($ext, '#') ) {
+            $hash = substr($ext, strrpos($ext, '#'));
+            $str .= $hash;
+        }
         return $str;
     }
     
@@ -605,20 +629,22 @@ class SpecialHtml2Wiki extends SpecialPage {
                                     zip_entry_read($zip_entry, zip_entry_filesize($zip_entry));
                             zip_entry_close($zip_entry);
                         }
-                        // mArticleSavePath equals the value of mCollectionName (if any) plus any intermediate path elements NOT including the file name
-                        // The mCollectionName will get added in during the call to qpMakeLinksAbsolute()
+                        // mArticleSavePath any intermediate path elements NOT including the file name nor the CollectionName
                         $this->mArticleSavePath = pathinfo($this->mFilename, PATHINFO_DIRNAME);
-                        // mArticleTitle will be the full value of mCollectionName (if any) plus mArticleSavePath plus the file name MINUS any extension
+                        // mArticleTitle will be the full value of mCollectionName (if any) plus mArticleSavePath plus the file name MINUS any extension for .html files
                         $this->mArticleTitle = ($this->mCollectionName)? "{$this->mCollectionName}/{$this->mFilename}" : $this->mFilename;
-                        $path = $this->mArticleTitle;
-                        $this->mArticleTitle = pathinfo($path, PATHINFO_DIRNAME) . "/" . pathinfo($path, PATHINFO_FILENAME);
+                        $this->mArticleTitle = self::removeExtensionFromPath($this->mArticleTitle);
                         $this->processFile();
                     }
 
                     // Process Images
                     if ( in_array($entry, $availableImages) ) {
-                        // remove 'images/' from the path because we don't want that in our final title
-                        $this->mFilename = str_replace( 'images/', '', zip_entry_name($zip_entry) );
+                        global $wgH2WEliminateDuplicateImages;
+                        if ($wgH2WEliminateDuplicateImages) {
+                            $this->mFilename = basename(zip_entry_name($zip_entry));
+                        } else {
+                            $this->mFilename = zip_entry_name($zip_entry);
+                        }
                         $this->mFilesize = zip_entry_filesize($zip_entry);
                         $this->mComment = "Html2Wiki imported {$this->mFilename} (" . $this->formatValue($this->mFilesize) . ")";
                         // $this->mMimeType = 'image/jpg'; // don't spoof  upload() will get the proper mimetype and handler
@@ -636,7 +662,7 @@ class SpecialHtml2Wiki extends SpecialPage {
                 // check if mFileCountExpected = mFileCountProcessed and close the handle
                 zip_close($zipHandle);
             }
-        wfDebug( __METHOD__ . ": processed $imageCount images" );
+        // wfDebug( __METHOD__ . ": processed $imageCount images" );
         } else {
             $out->addHTML('<div><pre>');
             $out->addHTML('This zip archive is not recognized');
@@ -783,13 +809,19 @@ HERE
         // turn <a name="foo"></a> to <span name="foo"></span> for intradocument links
         $this->mContent = self::qpLinkToSpan($this->mContent);
         // fix up relative links
-        $this->qpMakeLinksAbsolute();
+        // $this->qpMakeLinksAbsolute('a:link', 'href');
+        // $this->qpMakeLinksAbsolute('img', 'src');
+        // $this->qpMakeLinksStatic('img', 'src');
+        $this->qpNormalizeLinks('a:link', 'href');
+        $this->qpNormalizeLinks('img', 'src');
+        
         // fix up the image links
         $this->qpAlterImageLinks();
         // cleanUVM is actually good for both sets, and gets rid of scripts etc.
+        // but it's old and duplicates stuff that is already done by Tidy etc.
         $this->cleanUVMFile();
         
-        $this->eliminateCruft();
+        
         // example of using a static method that would be available without
         // an Html2Wiki object (outside the class)
         $this->mContent = self::qpItalics($this->mContent, 'span.cItalic' );
@@ -798,7 +830,6 @@ HERE
         // panDoc apparently lets double single quotes ''italics'' pass through
         // so we can qpItalics before running panDoc2Wiki()
         $this->panDoc2Wiki();
-        // $this->qpRewriteImages();
         $this->substituteTemplates();
         $this->autoCategorize();
         // @todo turn this into a function, and ensure that the CollectionName 
@@ -807,7 +838,7 @@ HERE
             $this->mContent .= "\n[[Category:{$this->mCollectionName}]]";
         }        
         // $this->showRaw();
-        // $this->showContent();
+        //$this->showContent();
         $this->saveArticle();
         // self::saveCat($this->mFilename, 'Html2Wiki Imports');
         $this->addFileToResults();
@@ -936,17 +967,16 @@ HERE
         if ($message) {
             $out->addHTML('<div class="error">' . $message . "</div>\n");
         }
-
         if ($user->isAllowed('importupload')) {
             $out->addHTML(
                     Xml::fieldset($this->msg('html2wiki-fieldset-legend')->text()) . // ->plain() or ->escaped()
                     Xml::openElement(
-                            'form', array(
-                        'enctype' => 'multipart/form-data',
-                        'method' => 'post',
-                        'action' => $action,
-                        'id' => 'html2wiki-form'           // new id
-                            )
+                        'form', array(
+                            'enctype' => 'multipart/form-data',
+                            'method' => 'post',
+                            'action' => $action,
+                            'id' => 'html2wiki-form'           // new id
+                        )
                     ) .
                     $this->msg('html2wiki-text')->parseAsBlock() .
                     Html::hidden('action', 'submit') .
@@ -981,7 +1011,7 @@ HERE
 				<tr>
 					<td></td>
 					<td class='mw-submit'>" .
-                    Xml::submitButton($this->msg('html2wiki-importbtn')->text()) .
+                    Xml::submitButton($this->msg('html2wiki-importbtn')->text(), array('id' => 'html2wiki-submit')) .
                     "</td>
 				</tr>" .
                     Xml::closeElement('table') .
@@ -989,6 +1019,9 @@ HERE
                     Xml::closeElement('form') .
                     Xml::closeElement('fieldset')
             );
+            
+            $out->addHTML('<div class="mw-ext-Html2Wiki-loading"></div>');
+            
         } else {
             $out->addWikiMsg('html2wiki-not-allowed');
         }
@@ -1164,6 +1197,9 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
     public function qpAddParentToLink($parent) {
         $qp = qp($this->mContent);
         $anchors = $qp->find("a");
+        if ( $anchors->length == 0 ) {
+            return false;
+        }
         foreach ($anchors as $anchor) {
             $href = $anchor->attr('href');
             if (substr($href, 0, 1) == '#') {
@@ -1183,33 +1219,198 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
         ob_start();
         $qp->writeHTML();
         $this->mContent = ob_get_clean();
+        return true;
     }
     
     /**
-     * Function to convert relative links to full absolute links to preserve
-     * the Collection hierarchy in the wiki for imported Collections.
+     * This utility function is for adding a path element to relative links
+     * such as <a href="../../../some/other/file.html">
      * 
-     * @return boolean true on completion
+     * By using a regex and including the non-period character, we ensure
+     * that processing is done right-to-left.  And by going right to left, we
+     * can pop the stack for $this->mArticleSavePath
+     * 
+     * If we have CN/docs/html/files/example/conversion/converter.html
+     * and we're processing converter.html which has a link to 
+     * ../../../images/foo.jpg  The result of calling this function repeatedly
+     * will be <img src=
+     * 
+     * @param string $replacement a parent directory name
+     * @param string $subject the src or href attribute that we're rebuilding
+     * @return string The (partially?) reconstituted attribute.
      */
-    public function qpMakeLinksAbsolute () {
-        $fullpath = ($this->mCollectionName)? "/{$this->mCollectionName}/{$this->mArticleSavePath}" : "/{$this->mArticleSavePath}";
-        $qp = htmlqp($this->mContent, 'a:link');
-        foreach ($qp as $anchor) {
-            $href = $anchor->attr('href');
-            $absolutePath = "$fullpath/{$href}";
-            // NO need to get rid of any ../ because it will still work
-            $absolutePath = self::removeExtensionFromPath($absolutePath);
-            $anchor->attr('href', $absolutePath);
+    public static function replaceDots ($replacement, $subject) {
+        $subject = preg_replace('#\.\./([^.*])#', "$replacement/$1", $subject);
+        return $subject;
+    }
+    
+    public function qpNormalizeLinks ($selector, $attribute) {
+        global $wgH2WEliminateDuplicateImages;
+        $qp = htmlqp($this->mContent, $selector);
+        if ( $qp->length == 0 ) {
+            return false;
+        }
+        // take out the final trailing slash, which will just create an empty value
+        // MWDebug::log('Save Path is ' . $this->mArticleSavePath);
+        $arrPath = explode('/', rtrim($this->mArticleSavePath, '/'));
+        foreach ($qp as $item) {
+            $levels = false;
+            ${$attribute} = $item->attr($attribute);
+            // skip over absolute references
+            if( substr(${$attribute}, 0, 4) == 'http' ) {
+                continue;
+            }
+            // skip intra-document links
+            if( substr(${$attribute}, 0, 1) == '#' ) {
+                continue;
+            }
+
+            $levels = substr_count(${$attribute}, '../');
+            if ($levels) {
+                $anchor = array_slice($arrPath, 0, count($arrPath)-$levels);
+                $anchor = implode('/', $anchor);
+                ${$attribute} = str_replace('../', '', ${$attribute});
+                ${$attribute} = "$anchor/${$attribute}";
+            }
+            // only remove the extension on href's because we've similarly modified titles
+            if ($attribute == 'href') {
+                ${$attribute} = self::removeExtensionFromPath(${$attribute});
+            }
+            // flatten images; according to the setting of $wgH2WEliminateDuplicateImages
+            if ($attribute == 'src') {
+                ${$attribute} = ($wgH2WEliminateDuplicateImages)? basename(${$attribute}) : ${$attribute};
+            }
+            // add in the CollectionName
+            if ($this->mCollectionName) {
+                ${$attribute} = $this->mCollectionName . '/' . ${$attribute};
+            }
+            // MWDebug::log("Setting $attribute to  ${$attribute}");
+            $item->attr($attribute, ${$attribute});
         }
         ob_start();
         $qp->writeHTML();
         $this->mContent = ob_get_clean();
+        
         return true;
+    }
+    
+    /**
+     * For some collections of html content, all the images are in a
+     * single folder 'images', or 'img', or 'assets'.
+     *
+     * Static in the function name just means that images are "contained" in a 
+     * common sub-directory of the source content and destination.  Thus the 
+     * src attributes for all imported images will be the same, aka 'static', up
+     * to but not including the final filename.
+     * 
+     * This is opposed to other 'organic' collections of html where image files may 
+     * be interspersed throughout the collection of html, and thus have varying
+     * image paths.
+     * 
+     * We don't need long static paths. It serves no purpose to have an image reside at 
+     * UVM2.2/docs/html/images/illustration.png when we can more simply use
+     * UVM2.2/illustration.png  Thus we should import them into the wiki with just
+     * the Collection name as a distinguishing identifier.
+     * 
+     * The Collection name being used as an identifier means that images can differ
+     * between collections.
+     * Ie. UVM2.2/illustration.png can be different than UVM2.3/illustration.png
+     * 
+     * $imagePath is a string that will be stripped from the resultant image
+     * tag.  e.g. if all images are in an 'images/' folder in the source content, 
+     * then images/ will be stripped from the resultant wikified image path.
+     * 
+     * 
+     * DEPRECATED
+     */
+    public function qpMakeLinksStatic ($selector, $attribute, $removePathElement='images') {
+        global $wgH2WEliminateDuplicateImages;
+        
+        $qp = htmlqp($this->mContent, $selector);
+        if ( $qp->length == 0 ) {
+            return false;
+        }
+        foreach ($qp as $item) {
+            ${$attribute} = $item->attr($attribute);
+            ${$attribute} = str_replace('../', '', ${$attribute});
+            ${$attribute} = str_replace("$removePathElement/", '', ${$attribute});
+            // prepend the Collection Name for relative links
+            if( substr(${$attribute}, 0, 4) !== 'http' ) {
+                ${$attribute} = $this->mCollectionName . "/${$attribute}";
+            }
+            // only flatten images; according to the setting of $wgH2WEliminateDuplicateImages
+            if ($attribute == 'src' && $wgH2WEliminateDuplicateImages) {
+                ${$attribute} = basename(${$attribute});
+            }
+            $item->attr($attribute, ${$attribute});
+        }
+        ob_start();
+        $qp->writeHTML();
+        $this->mContent = ob_get_clean();
+        
+        return true;
+    }
+    /**
+     * Function to convert relative links to full absolute links to preserve
+     * the Collection hierarchy in the wiki for imported Collections.  
+     * Multi-variant, works on images and anchors
+     * 
+     * @return boolean true on completion
+     * eg.
+     * qpMakeLinksAbsolute('a:link', 'href'); or
+     * qpMakeLinksAbsolute('img', 'src');
+     * 
+     * 
+     * DEPRECATED
+     */
+    public function qpMakeLinksAbsolute ($selector, $attribute) {
+        global $wgH2WEliminateDuplicateImages;
+        
+        $qp = htmlqp($this->mContent, $selector);
+        if ( $qp->length == 0 ) {
+            return false;
+        }
+        foreach ($qp as $item) {
+            ${$attribute} = $item->attr($attribute);
+            if(stristr(${$attribute}, '../')) {
+                $replacements = explode('/', $this->mArticleSavePath);
+                $replacement = array_pop($replacements);
+                while ( stristr(${$attribute}, '../') && !is_null($replacement) ) {
+                    ${$attribute} = self::replaceDots($replacement, ${$attribute});
+                }
+            }
+            // prepend the Collection Name for relative links
+            if( substr(${$attribute}, 0, 1) == '/' ) {
+                ${$attribute} = ( !empty($this->mCollectionName) )? "{$this->mCollectionName}/${$attribute}" : ${$attribute};
+            }
+            // only remove the extension on href's because we've similarly modified titles
+            if ($attribute == 'href') {
+                ${$attribute} = self::removeExtensionFromPath(${$attribute});
+            }
+            // only flatten images; according to the setting of $wgH2WEliminateDuplicateImages
+            if ($attribute == 'src') {
+                ${$attribute} = ($wgH2WEliminateDuplicateImages)? basename(${$attribute}) : ${$attribute};
+            }
 
+            $item->attr($attribute, ${$attribute});
+        }
+        ob_start();
+        $qp->writeHTML();
+        $this->mContent = ob_get_clean();
+        
+        return true;
     }
     /**
      * A function to change the image tags in imported documents 
      * to reflect the path that those images will be found at in the wiki.
+     * 
+     * Previously we tried to make things more elaborate for VIP, but then found
+     * that QueryParse fails miserably to find the 'parent' if it doesn't exist.
+     * In UVM collections, there won't be a .pFigureTitle container for the img
+     * 
+     * So, now we're just removing the 'images/' portion of the src attribute
+     * 
+     * This other documentation is for further mulling/refinement of original goals
      * 
      * We also want to dress up the tag so that it can be useful to Pandoc
      * 
@@ -1245,17 +1446,21 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
      * location of the image that is saved into the wiki's file namespace
      * 
      */
-    public function qpAlterImageLinks () {
-        $fullpath = ($this->mCollectionName)? "{$this->mCollectionName}/{$this->mArticleSavePath}/" : "{$this->mArticleSavePath}/";
+    public function qpAlterImageLinks ($removePathElement = null) {
         $qp = htmlqp ($this->mContent, 'img');
+        if ( $qp->length == 0 ) {
+            return false;
+        }
         foreach ($qp as $img) {
-            $title = $img->parent('.pFigureTitle')->text();
-            $title = str_replace(array("\r", "\r\n", "\n"), ' ', $title);
-            $title = preg_replace("/^\s+/", '', $title);
             $src = $img->attr('src');
-            $src = str_replace('images/', '', $src);
-            $img->attr('src', "$fullpath{$src}");
-            $img->attr('title', $title);
+            if ( !is_null($removePathElement) ) {
+                $src = str_replace("$removePathElement/", '', $src);
+            }
+            $img->attr('src', $src);
+            if ( empty( $img->attr('title') ) ) {
+                $title = str_replace('_', ' ', basename($src));
+                $img->attr('title', $title);
+            }
         }
         ob_start();
         $qp->writeHTML();
@@ -1273,6 +1478,9 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
     public static function qpItalics($content, $selector = NULL, $options = array('ignore_parser_warnings'=> true) ) {
         $qp = htmlqp($content, $selector, $options);
         $items = $qp->find($selector);
+        if ( $items->length == 0 ) {
+            return $content;
+        }
         foreach ($items as $item) {
             $text = $item->text();
             $newtag = "''$text''";
@@ -1291,13 +1499,45 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
      * wikitext and so they should be filtered out.
      * @param string $content
      * @return string the cleaned content
+     * 
+     * Here is what a QueryParser object looks like.
+     * There is a count() method, and a length property.
+     * Note that because we remove the 'head' with Tidy, there is no 'head' to 
+     * remove with QP
+
+        object(QueryPath\DOMQuery)[476]
+          private 'errTypes' => int 257
+          protected 'document' => 
+            object(DOMDocument)[214]
+          private 'options' => 
+            array (size=9)
+              'ignore_parser_warnings' => boolean true
+              'convert_to_encoding' => string 'ISO-8859-1' (length=10)
+              'convert_from_encoding' => string 'auto' (length=4)
+              'use_parser' => string 'html' (length=4)
+              'parser_flags' => null
+              'omit_xml_declaration' => boolean false
+              'replace_entities' => boolean false
+              'exception_level' => int 771
+              'escape_xhtml_js_css_sections' => string '' (length=8)
+          protected 'matches' => 
+            object(SplObjectStorage)[479]
+          protected 'last' => 
+            object(SplObjectStorage)[482]
+          private 'ext' => 
+            array (size=0)
+              empty
+          public 'length' => int 0
      */
     public static function qpCleanVIP($content) {
         $qp = htmlqp($content);
         $ea = $qp->top()->find('head');
-        foreach ($ea as $head) {
-            $head->remove();
-        }
+        if ($ea->length) {
+            foreach ($ea as $head) {
+                $head->remove();
+            }
+            
+        }        
         $qp->find('#BodyPopup')->remove();
         $qp->find('#HideBody')->remove();
         $qp->find('#BodyContent')->unwrap();
@@ -1353,6 +1593,9 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
         $qp = htmlqp($this->mContent, null, $options);
         // first ditch all the other attributes of true anchor tags
         $anchors = $qp->find('a:link');
+        if ( $anchors->length == 0 ) {
+            return false;
+        }
         foreach ($anchors as $anchor) {
             $href = $anchor->attr('href');
             $linktext = $anchor->text();
@@ -1376,10 +1619,14 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
          ob_start();
          $qp->writeHTML();
          $this->mContent = ob_get_clean();
+         return true;
     }
     
     public static function qpLinkToSpan($content) {
         $qp = htmlqp($content, 'a');
+        if ( $qp->length == 0 ) {
+            return false;
+        }
         foreach ($qp as $anchor) {
             if ($anchor->hasAttr('href')) {
                 // in VIP anchors with href's don't have names and vice versa
@@ -1412,6 +1659,9 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
     public function qpRemoveMouseOvers() {
         // $qp = htmlqp($this->mContent, 'body')->find("a:link");
         $qp = htmlqp($this->mContent, 'a:link');
+        if ( $qp->length == 0 ) {
+            return false;
+        }
         foreach ($qp as $anchor) {
             $anchor->removeAttr('onclick'); // vip
             $anchor->removeAttr('onmouseover'); // uvm
@@ -1421,38 +1671,12 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
         ob_start();
         $qp->writeHTML();
         $this->mContent = ob_get_clean(); 
+        return true;
     }
     
-
     /**
-     * Before we rewrite the image tags, we'll have to ensure that any relative 
-     * links like src="../images/foo.jpg" are converted to full paths that can be 
-     * translated to a wiki file path.  qpAddParentToLink() should take care of that.
-     * @param type $content
-     * @return type
-     */
-    public function qpRewriteImages($content=null) {
-        
-        global $wgH2WEliminateDuplicateImages;
-                
-        if ( is_null($content) ) {
-            $content = $this->mContent;
-        }
-        $qp = htmlqp($content)->find('img');
-
-        foreach ($qp as $item) {
-            $src = $item->attr('src');
-            $src = ($wgH2WEliminateDuplicateImages)? basename($src) : $src;
-            $src = ( !empty($this->mCollectionName) )? "{$this->mCollectionName}/$src" : $src;
-            $newtag = "[[File::$src|center|frame]]";
-            $item->replaceWith($newtag);
-        }
-        $qp->top();
-        ob_start();
-        $qp->writeHTML();
-        $this->mContent = ob_get_clean();
-    }
-            
+     * 
+     */        
     public function cleanUVMFile() {
         // delete content tags
         $reHead = "#<head>.*?</head>#is";
@@ -1514,23 +1738,6 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
             => '{{Footer}}'
         );
         $this->mContent = str_ireplace(array_keys($myReplacements), array_values($myReplacements), $this->mContent);
-    }
-
-    /**
-     * Similar to substituteTemplates() but this function is for removing 
-     * leftover presentational or functional HTML that is not suitable content
-     * for the wiki-fied version.
-     * 
-     * E.g.  <div id="BodyPopup" class="BodyPopup"></div>
-     *       <div class="HideBody" id="HideBody">&nbsp;</div>
-     * should be removed from the source HTML
-     */
-    public function eliminateCruft() {
-        $myNeedles = array(
-            '<div id="BodyPopup" class="BodyPopup"></div>',
-            '<div class="HideBody" id="HideBody">&nbsp;</div>'
-        );
-        $this->mContent = str_ireplace($myNeedles, '', $this->mContent);
     }
 
     /**

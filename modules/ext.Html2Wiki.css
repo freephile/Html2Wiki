@@ -27,3 +27,12 @@ ul.mw-ext-Html2Wiki a {
 ul.mw-ext-Html2Wiki a:hover {
     text-decoration: underline;
 }
+
+.mw-ext-Html2Wiki-loading {
+    border: 1px solid #ccc;
+    width: 150px;
+    height: 100px;
+    background: url( http://upload.wikimedia.org/wikipedia/commons/d/de/Ajax-loader.gif ) no-repeat center center;
+    display: none;
+
+}
