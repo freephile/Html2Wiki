@@ -38,7 +38,7 @@ class SpecialHtml2Wiki extends SpecialPage {
     private $mTidyConfig;  // the configuration we want to use for tidy.
     private $mMimeType;  // the detected or inferred mime-type of the upload
     private $mDataDir; // where we want to temporarily store and retrieve data from
-    /** name for the collection we're importing e.g. UVM-1.1d
+    /** name for the collection we're importing e.g. UNH-1.1d
      *
      * @var string a specific identifier for a set of documents imported into 
      * the wiki.  Gathered from the form, if the value has any slashes in it
@@ -528,7 +528,7 @@ class SpecialHtml2Wiki extends SpecialPage {
      * we work with the contents of the archive, processing each entry.
      * We have to loop through the archive twice... 
      * On the first pass we detect the "brand" of archive.
-     * The brand is currently one of 'VIP' or 'UVM' which are collections we
+     * The brand is currently one of 'REI' or 'UNH' which are collections we
      * are familiar with.
      * Based on the brand, we build up a list of HTML files and image files that
      * match our expectations.
@@ -542,11 +542,6 @@ class SpecialHtml2Wiki extends SpecialPage {
         
         $out = $this->getOutput();
         $zipfile = $_FILES['userfile']['tmp_name'];
-// $zipfile = __DIR__ . '/data/vip-info-hub-docs-for-wiki-import.zip';
-// $zipfile = realpath($zipfile);
-// The "Questa Verification IP User Guide" -> "Retargeting a Normal Sequence Item" (./docs/htmldocs/questa_vip_user/advanced_topics07.html)
-// content file references the ./docs/htmldocs/questa_vip_user/images/message_sequence_chart__normal_mvc_sequence.jpg image.
-// $eoi = 'docs/htmldocs/questa_vip_user/advanced_topics07.html';
 
         $availableFiles = array();
         $availableImages = array();
@@ -558,10 +553,10 @@ class SpecialHtml2Wiki extends SpecialPage {
                 $entry = zip_entry_name($zip_entry);
                 switch ($entry) {
 
-                    // The html/ folder adds almost 1,000% more files in the case of VIP Info Hubs
-                    // case ( preg_match('#(?:htmldocs|html)/.*\.html?$#i', $entry)? $entry : '' ): #10,865  This matches VIP content plus the 'html' folder as well
-                    case ( preg_match('#htmldocs/.*\.html?$#i', $entry) ? $entry : '' ): #1,112  // This matches VIP content
-                    case ( preg_match('#docs/html/files/.*\.html?$#i', $entry) ? $entry : '' ):  // This is for UVM content
+                    // The html/ folder adds almost 1,000% more files in the case of Info Hubs
+                    // case ( preg_match('#(?:htmldocs|html)/.*\.html?$#i', $entry)? $entry : '' ): #10,865  This matches REI content plus the 'html' folder as well
+                    case ( preg_match('#htmldocs/.*\.html?$#i', $entry) ? $entry : '' ): #1,112  // This matches REI content
+                    case ( preg_match('#docs/html/files/.*\.html?$#i', $entry) ? $entry : '' ):  // This is for UNH content
                         // a temporary filter to process a small number of files
                         // if ( preg_match('#advanced_topics|axi_user#', $entry) ) {
                             $availableFiles[] = $entry;
@@ -572,11 +567,8 @@ class SpecialHtml2Wiki extends SpecialPage {
                     // The html/ folder adds 40% more images
                     // case ( preg_match('#(?:htmldocs|html)/.*/images/.*\.(?:jpe?g|png|gif)$#i', $entry)? $entry : '' ): #715
                     case ( preg_match('#htmldocs/.*/images/.*\.(?:jpe?g|png|gif)$#i', $entry) ? $entry : '' ):  #511
-                    case ( preg_match('#docs/html/images/.*\.(?:jpe?g|png|gif)$#i', $entry) ? $entry : '' ):  // This is for UVM content
-                        // a temporary filter to process a small number of files
-                        // if ( preg_match('#vip|axi#', $entry) ) {
+                    case ( preg_match('#docs/html/images/.*\.(?:jpe?g|png|gif)$#i', $entry) ? $entry : '' ):  // This is for UNH content
                             $availableImages[] = $entry;
-                        //}
                         break;
 
                     case 'docs/htmldocs/':
@@ -595,7 +587,6 @@ class SpecialHtml2Wiki extends SpecialPage {
         // wfDebug( __METHOD__ . ": done with first inventory of zip archive" );
         if ($this->mIsRecognized) {
             $imageCount = 0;
-            // echo "Now we're processing a VIP Info Hubs zip\n";
             $zipHandle = zip_open($zipfile);
             if (is_resource($zipHandle)) {
                 while ($zip_entry = zip_read($zipHandle)) {
@@ -754,7 +745,7 @@ HERE
         // Tidy now works on mContent even when in fallback mode for MediaWiki-Vagrant
         $this->tidyup(self::getTidyOpts());
         
-        $this->mContent = self::qpCleanVIP($this->mContent);
+        $this->mContent = self::qpClean($this->mContent);
         // qpCleanLinks is a stronger version of qpRemoveMouseOvers
         //$this->qpCleanLinks();
         // Remove mouseovers and onclick handlers in links
@@ -767,9 +758,9 @@ HERE
         
         // fix up the image links
         $this->qpAlterImageLinks();
-        // cleanUVM is actually good for both sets, and gets rid of scripts etc.
+        // cleanFile is actually good for both sets, and gets rid of scripts etc.
         // but it's old and duplicates stuff that is already done by Tidy etc.
-        $this->cleanUVMFile();
+        $this->cleanFile();
         
         
         // example of using a static method that would be available without
@@ -809,7 +800,7 @@ HERE
         $user = $this->getUser();
         // @todo, modify this so we can enter dynamic $comment and $pageText
         $comment = $this->mComment;
-        $pageText = "[[Category:Html2Wiki]] [[Category:VIP]]";
+        $pageText = "[[Category:Html2Wiki]]";
 
         $title = $this->makeTitle( NS_FILE );
         $image = wfLocalFile( $title );            
@@ -1230,24 +1221,24 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
      * 
      * In the former case, we don't need long static paths.  It serves no purpose 
      * to have an image reside at 
-     *   UVM2.2/docs/html/images/illustration.png v.
-     *   UVM2.2/illustration.png  
+     *   UNH2.2/docs/html/images/illustration.png v.
+     *   UNH2.2/illustration.png  
      *
      * Thus we should import them into the wiki with just
      * the Collection name as a distinguishing identifier.
      * 
      * The Collection name being used as an identifier means that images can differ
      * between collections.
-     *   UVM2.2/illustration.png v.
-     *   UVM2.3/illustration.png
+     *   UNH2.2/illustration.png v.
+     *   UNH2.3/illustration.png
      * 
      * 
      * A function to change the image tags in imported documents 
      * to reflect the path that those images will be found at in the wiki.
      * 
-     * Previously we tried to make things more elaborate for VIP, but then found
+     * Previously we tried to make things more elaborate for REI, but then found
      * that QueryParse fails miserably to find the 'parent' if it doesn't exist.
-     * In UVM collections, there won't be a .pFigureTitle container for the img
+     * In UNH collections, there won't be a .pFigureTitle container for the img
      * 
      * So, now we're just removing the 'images/' portion of the src attribute
      * 
@@ -1333,7 +1324,7 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
     
     /**
      * A function that will strip the head, and remove certain document elements
-     * which are found in VIP collections and are not desired for conversion to
+     * which are found in REI collections and are not desired for conversion to
      * wikitext and so they should be filtered out.
      * @param string $content
      * @return string the cleaned content
@@ -1367,7 +1358,7 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
               empty
           public 'length' => int 0
      */
-    public static function qpCleanVIP($content) {
+    public static function qpCleanREI($content) {
         $qp = htmlqp($content);
         $ea = $qp->top()->find('head');
         if ($ea->length) {
@@ -1466,7 +1457,7 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
         }
         foreach ($qp as $anchor) {
             if ($anchor->hasAttr('href')) {
-                // in VIP anchors with href's don't have names and vice versa
+                // in REI anchors with href's don't have names and vice versa
                 // but we still want to be extra cautious not to turn a link
                 // with an href into a span tag
                 continue; 
@@ -1500,9 +1491,9 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
             return false;
         }
         foreach ($qp as $anchor) {
-            $anchor->removeAttr('onclick'); // vip
-            $anchor->removeAttr('onmouseover'); // uvm
-            $anchor->removeAttr('onmouseout'); // uvm
+            $anchor->removeAttr('onclick'); // rei
+            $anchor->removeAttr('onmouseover'); // unh
+            $anchor->removeAttr('onmouseout'); // unh
         }
         $qp->top();
         ob_start();
@@ -1514,7 +1505,7 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
     /**
      * 
      */        
-    public function cleanUVMFile() {
+    public function cleanFile() {
         // delete content tags
         $reHead = "#<head>.*?</head>#is";
         $reBody = "#<body\b[^>]*>(.*?)</body>#is";
@@ -1581,12 +1572,12 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
     private function autoCategorize() {
         $categoryTags = array();
         $categories = array(
-            'uvm' => '[[Category:UVM]]',
-            'vip' => '[[Category:VIP Info Hub]]'
+            'unh' => '[[Category:UNH]]',
+            'rei' => '[[Category:Info Hub]]'
         );
         $needles = array(
-            'uvm' => 'Generated by Natural Docs',
-            'vip' => 'Quadralay WebWorks AutoMap 2003 for FrameMaker'
+            'unh' => 'Generated by Natural Docs',
+            'rei' => 'Quadralay WebWorks AutoMap 2003 for FrameMaker'
         );
         foreach ($needles as $k => $v) {
             if (stristr($this->mContentRaw, $v)) {
