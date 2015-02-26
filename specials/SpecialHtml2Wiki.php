@@ -47,7 +47,15 @@ class SpecialHtml2Wiki extends SpecialPage {
      */
     private $mCollectionName;
     protected $mArticleSavePath;
-    public $mIsRecognized; // we're purpose built to detect and handle two types of zipped content
+    /**
+     *
+     * @var bool Html2Wiki started purpose built to detect and handle two types 
+     * of zipped content.  The challenge now is to make the parsing and handling
+     * of content recipe driven so that a user can interact with the system without
+     * having to re-code anything yet still achieve the powerful results available
+     * with Tidy, QueryParse and Pandoc
+     */
+    public $mIsRecognized; 
 
     public $mImages;  // an array of image files that should be imported
     public $mFilesAreProcessed; // boolean, whether we've (uploaded and) processed content files
@@ -538,7 +546,7 @@ class SpecialHtml2Wiki extends SpecialPage {
         // wfDebug( __METHOD__ . ": unzipping stuff" );
         // blank out our per-file data
         $this->mMimeType = $this->mFilename = $this->mFilesize = '';
-        $this->IsRecognized = false;
+        $this->mIsRecognized = false;
         
         $out = $this->getOutput();
         $zipfile = $_FILES['userfile']['tmp_name'];
@@ -557,6 +565,7 @@ class SpecialHtml2Wiki extends SpecialPage {
                     // case ( preg_match('#(?:htmldocs|html)/.*\.html?$#i', $entry)? $entry : '' ): #10,865  This matches REI content plus the 'html' folder as well
                     case ( preg_match('#htmldocs/.*\.html?$#i', $entry) ? $entry : '' ): #1,112  // This matches REI content
                     case ( preg_match('#docs/html/files/.*\.html?$#i', $entry) ? $entry : '' ):  // This is for UNH content
+                    case ( preg_match('#\.html?$#i', $entry) ? $entry : '' ):
                         // a temporary filter to process a small number of files
                         // if ( preg_match('#advanced_topics|axi_user#', $entry) ) {
                             $availableFiles[] = $entry;
@@ -585,7 +594,8 @@ class SpecialHtml2Wiki extends SpecialPage {
             zip_close($zipHandle);
         }
         // wfDebug( __METHOD__ . ": done with first inventory of zip archive" );
-        if ($this->mIsRecognized) {
+        // if ($this->mIsRecognized) {
+        if ( count($availableFiles) || count($availableImages) ) {
             $imageCount = 0;
             $zipHandle = zip_open($zipfile);
             if (is_resource($zipHandle)) {
@@ -639,7 +649,7 @@ class SpecialHtml2Wiki extends SpecialPage {
         // wfDebug( __METHOD__ . ": processed $imageCount images" );
         } else {
             $out->addHTML('<div><pre>');
-            $out->addHTML('This zip archive is not recognized');
+            $out->addHTML('This zip archive does not contain any HTML or image files to process');
             $out->addHTML(print_r($availableFiles, true));
             $out->addHTML('</pre></div>');
         }
@@ -1169,10 +1179,20 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
         $arrPath = explode('/', rtrim($this->mArticleSavePath, '/'));
         foreach ($qp as $item) {
             $levels = false;
+            $isAbsolute = false;
             ${$attribute} = $item->attr($attribute);
-            // skip over absolute references
+            // skip over absolute references, unless is a friggin google tracker virus
             if( substr(${$attribute}, 0, 4) == 'http' ) {
-                continue;
+                $isAbsolute = true;
+                if (strpos(${$attribute}, 'google.com/url?q=')) {
+                    $matches = array();
+                    if (preg_match('#url\?q=([^&]*)#', ${$attribute}, $matches)) {
+                    }
+                    ${$attribute} = urldecode($matches[1]);
+                } else {
+                    // if it's an absolute link but now Googlfried, then nothing to do
+                    continue;
+                }
             }
             // skip intra-document links
             if( substr(${$attribute}, 0, 1) == '#' ) {
@@ -1187,7 +1207,7 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
                 ${$attribute} = "$anchor/${$attribute}";
             }
             // only remove the extension on href's because we've similarly modified titles
-            if ($attribute == 'href') {
+            if ($attribute == 'href' && !$isAbsolute) {
                 ${$attribute} = self::removeExtensionFromPath(${$attribute});
             }
             // flatten images; according to the setting of $wgH2WEliminateDuplicateImages
