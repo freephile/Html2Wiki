@@ -753,8 +753,8 @@ HERE
         // turn <a name="foo"></a> to <span name="foo"></span> for intradocument links
         $this->mContent = self::qpLinkToSpan($this->mContent);
         // fix up relative links
-        $this->qpNormalizeLinks('a:link', 'href');
-        $this->qpNormalizeLinks('img', 'src');
+        $this->qpNormalizeLinks('a:link');
+        $this->qpNormalizeLinks('img');
         
         // fix up the image links
         $this->qpAlterImageLinks();
@@ -1142,18 +1142,27 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
      * 
      * @global type $wgH2WEliminateDuplicateImages
      * @param string $selector is a CSS3 selector
-     * @param string $attribute the corresponding element attribute. either src/href
      * @return boolean
      * 
      * @usage example
-        $this->qpNormalizeLinks('a:link', 'href');
-        $this->qpNormalizeLinks('img', 'src');
+        $this->qpNormalizeLinks('a:link');
+        $this->qpNormalizeLinks('img');
      */
-    public function qpNormalizeLinks ($selector, $attribute) {
+    public function qpNormalizeLinks ($selector) {
         global $wgH2WEliminateDuplicateImages;
         $qp = htmlqp($this->mContent, $selector);
         if ( $qp->length == 0 ) {
             return false;
+        }
+        switch ($selector) {
+            case 'img':
+                $attribute = 'src';
+                break;
+            case 'a':
+            case 'a:link':
+            default:
+                $attribute = 'href';
+                break;
         }
         // take out the final trailing slash, which will just create an empty value
         // MWDebug::log('Save Path is ' . $this->mArticleSavePath);
