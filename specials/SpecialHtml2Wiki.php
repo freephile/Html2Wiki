@@ -577,6 +577,7 @@ class SpecialHtml2Wiki extends SpecialPage {
                     // case ( preg_match('#(?:htmldocs|html)/.*/images/.*\.(?:jpe?g|png|gif)$#i', $entry)? $entry : '' ): #715
                     case ( preg_match('#htmldocs/.*/images/.*\.(?:jpe?g|png|gif)$#i', $entry) ? $entry : '' ):  #511
                     case ( preg_match('#docs/html/images/.*\.(?:jpe?g|png|gif)$#i', $entry) ? $entry : '' ):  // This is for UNH content
+                    case ( preg_match('#\.(?:jpe?g|png|gif)$#i', $entry) ? $entry : '' ):  // all png, jpg, gif images
                             $availableImages[] = $entry;
                         break;
 
@@ -789,7 +790,7 @@ HERE
             $this->mContent .= "\n[[Category:{$this->mCollectionName}]]";
         }        
         // $this->showRaw();
-        //$this->showContent();
+        // $this->showContent();
         $this->saveArticle();
         // self::saveCat($this->mFilename, 'Html2Wiki Imports');
         $this->addFileToResults();
@@ -1187,8 +1188,8 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
                 if (strpos(${$attribute}, 'google.com/url?q=')) {
                     $matches = array();
                     if (preg_match('#url\?q=([^&]*)#', ${$attribute}, $matches)) {
+                        ${$attribute} = urldecode($matches[1]);
                     }
-                    ${$attribute} = urldecode($matches[1]);
                 } else {
                     // if it's an absolute link but now Googlfried, then nothing to do
                     continue;
