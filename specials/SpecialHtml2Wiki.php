@@ -1358,7 +1358,7 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
               empty
           public 'length' => int 0
      */
-    public static function qpCleanREI($content) {
+    public static function qpClean($content) {
         $qp = htmlqp($content);
         $ea = $qp->top()->find('head');
         if ($ea->length) {
