@@ -53,7 +53,7 @@ class SpecialHtml2Wiki extends SpecialPage {
      * of zipped content.  The challenge now is to make the parsing and handling
      * of content recipe driven so that a user can interact with the system without
      * having to re-code anything yet still achieve the powerful results available
-     * with Tidy, QueryParse and Pandoc
+     * with Tidy, QueryPath and Pandoc
      */
     public $mIsRecognized; 
 
@@ -1267,7 +1267,7 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
      * to reflect the path that those images will be found at in the wiki.
      * 
      * Previously we tried to make things more elaborate for REI, but then found
-     * that QueryParse fails miserably to find the 'parent' if it doesn't exist.
+     * that QueryPath fails miserably to find the 'parent' if it doesn't exist.
      * In UNH collections, there won't be a .pFigureTitle container for the img
      * 
      * So, now we're just removing the 'images/' portion of the src attribute
@@ -1359,7 +1359,7 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
      * @param string $content
      * @return string the cleaned content
      * 
-     * Here is what a QueryParser object looks like.
+     * Here is what a QueryPath object looks like.
      * There is a count() method, and a length property.
      * Note that because we remove the 'head' with Tidy, there is no 'head' to 
      * remove with QP
