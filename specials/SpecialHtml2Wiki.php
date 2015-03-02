@@ -33,6 +33,7 @@ class SpecialHtml2Wiki extends SpecialPage {
     /** @var int The size, in bytes, of the uploaded file. */
     private $mFilesize;
     private $mSummary;
+    private $mIsDryRun; // @var bool false option to save or only preview results
     private $mIsTidy;      // @var bool true once passed through tidy
     private $mTidyErrors;  // the error output of tidy
     private $mTidyConfig;  // the configuration we want to use for tidy.
@@ -230,6 +231,7 @@ class SpecialHtml2Wiki extends SpecialPage {
         //$commentDefault = wfMessage( 'html2wiki-comment' )->inContentLanguage()->plain();
         $commentDefault = wfMessage('html2wiki-comment')->inContentLanguage()->parse();
         $this->mComment = $request->getText('log-comment', $commentDefault);
+        $this->mIsDryRun = $request->getCheck('dry-run');
 
         // use the mCollectionName for tagging content.
         // mArticleSavePath does not contain the CollectionName; equals the value any intermediate path elements NOT including the file name
@@ -710,7 +712,7 @@ class SpecialHtml2Wiki extends SpecialPage {
             $out->addHTML('<div id="h2wLabel">Escaped File Contents:</div>');
             $out->addHTML('<div id="h2wContent">' . $escapedContent . '</div>');
         } else {
-            $out->addHTML('<div id="h2wLabel">Original File Contents:</div>');
+            $out->addHTML('<div id="h2wLabel">' . $this->msg('html2wiki-dry-run-heading')->text() . '</div>');
             // putting the original source into GeSHi makes it "safe" from the parser
             // but destroys any ability to act on the 'source' by manipulating this 
             // elements innerHTML
@@ -809,9 +811,14 @@ HERE
         if ($this->mCollectionName) {
             $this->mContent .= "\n[[Category:{$this->mCollectionName}]]";
         }        
-        // $this->showRaw();
-        // $this->showContent();
-        $this->saveArticle();
+        
+// $this->showRaw();
+        
+        if ( $this->mIsDryRun ) {
+            $this->showContent();
+        } else {
+            $this->saveArticle();
+        }
         // self::saveCat($this->mFilename, 'Html2Wiki Imports');
         $this->addFileToResults();
 
@@ -980,6 +987,16 @@ HERE
                             array('id' => 'mw-import-comment', 'type' => 'text')) . ' ' . // attribs
                     "</td>
 				</tr>
+				<tr>
+					<td class='mw-label'>" .
+                    Xml::label($this->msg('html2wiki-dry-run')->text(), 'mw-import-dry-run') .
+                    "</td>
+					<td class='mw-input'>" .
+                    Xml::check('dry-run', ( $this->mRequest ? $this->mIsDryRun : false),
+                            array('id' => 'mw-import-dry-run', 'title' => 'check here to PREVIEW results without saving')) . ' ' . // attribs
+                    "</td>
+				</tr>
+                                
 				<tr>
 					<td></td>
 					<td class='mw-submit'>" .
