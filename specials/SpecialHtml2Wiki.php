@@ -544,13 +544,32 @@ class SpecialHtml2Wiki extends SpecialPage {
      */
     private function unwrapZipFile() {
         // wfDebug( __METHOD__ . ": unzipping stuff" );
+        // grab the original extension so we can use it for PHAR handling
+        $ext = (false === $pos = strrpos($this->mFilename, '.')) ? '' : substr($this->mFilename, $pos+1);
         // blank out our per-file data
         $this->mMimeType = $this->mFilename = $this->mFilesize = '';
         $this->mIsRecognized = false;
         
         $out = $this->getOutput();
         $zipfile = $_FILES['userfile']['tmp_name'];
-
+        // this little shim will try to convert a gzip file
+        if ( ( $this->mOriginal['mimetype'] ==  'application/x-gzip' )  ||
+           ( $this->mOriginal['mimetype'] == 'application/x-gtar' ) ) {
+            try {
+                // PharData will refuse to read without a proper extension
+                $moved = rename ($zipfile, "$zipfile.$ext");
+                $tarphar = new PharData("$zipfile.$ext");
+                // convert it to zip (does not unlink the original, which we'll do at the end of this function)
+                $tarphar->convertToData(Phar::ZIP, Phar::NONE);
+                unlink("$zipfile.$ext");
+                $zipfile = "$zipfile.zip";
+            } catch (Exception $e) {
+                $out->wrapWikiMsg(
+                    "<p class=\"error\">\n$1\n</p>", array('html2wiki_uploaderror', $e->getMessage())
+                );
+                return false;
+            }
+        }
         $availableFiles = array();
         $availableImages = array();
 
@@ -647,6 +666,7 @@ class SpecialHtml2Wiki extends SpecialPage {
                 // check if mFileCountExpected = mFileCountProcessed and close the handle
                 zip_close($zipHandle);
             }
+        unlink($zipfile);
         // wfDebug( __METHOD__ . ": processed $imageCount images" );
         } else {
             $out->addHTML('<div><pre>');
