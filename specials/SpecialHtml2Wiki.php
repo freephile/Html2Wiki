@@ -941,12 +941,12 @@ HERE
         $user = $this->getUser();
         $out = $this->getOutput();
         $out->addModules(array('ext.Html2Wiki')); // add our javascript and css
-        $out->addWikiMsg('html2wiki-intro');
         // display an error message if any
         if ($message) {
             $out->addHTML('<div class="error">' . $message . "</div>\n");
         }
         if ($user->isAllowed('importupload')) {
+            $out->addWikiMsg('html2wiki-intro');
             $out->addHTML(
                     Xml::fieldset($this->msg('html2wiki-fieldset-legend')->text()) . // ->plain() or ->escaped()
                     Xml::openElement(
