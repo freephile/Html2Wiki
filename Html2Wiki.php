@@ -104,7 +104,9 @@ $wgH2WProcessImages = true;
 global $wgNamespacesWithSubpages;
 
 if ( $wgNamespacesWithSubpages[NS_MAIN] !== true ) {
-    die("This extension requires $wgNamespacesWithSubpages set to TRUE in the MAIN namespace");
+    die("This extension requires \$wgNamespacesWithSubpages set to TRUE in the MAIN namespace.  
+    Please add \n
+    \$wgNamespacesWithSubpages[NS_MAIN] = true;\n to your LocalSettings.php");
 }
 
 // Register files
