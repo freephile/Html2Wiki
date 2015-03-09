@@ -462,9 +462,10 @@ class SpecialHtml2Wiki extends SpecialPage {
                 default:
                     throw new RuntimeException('Unhandled error: ' . $_FILES['userfile']['error'] . ' in ' . __METHOD__);
             }
-            // You should also check filesize here. 
-            if ($_FILES['userfile']['size'] > $wgMaxUploadSize['*']) {
-                throw new RuntimeException('Exceeded filesize limit, check $wgMaxUploadSize[\'*\'].');
+            // Check filesize.  Right now, we're just using one value.  @todo add URL uploading 
+            $max_size = is_array($wgMaxUploadSize)? $wgMaxUploadSize['*'] : $wgMaxUploadSize;
+            if ($_FILES['userfile']['size'] > $max_size) {
+                throw new RuntimeException('Exceeded filesize limit, check $wgMaxUploadSize.');
             }
 
             // we do not trust $_FILES['userfile']['type'] 
