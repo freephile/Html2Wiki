@@ -1010,7 +1010,7 @@ HERE
                     Xml::closeElement('fieldset')
             );
             
-            $out->addHTML('<div class="mw-ext-Html2Wiki-loading"></div>');
+            $out->addHTML('<div class="mw-ext-Html2Wiki-loading"><img src="http://upload.wikimedia.org/wikipedia/commons/d/de/Ajax-loader.gif" alt="loading... please wait" style="margin:9px" /></div>');
             
         } else {
             $out->addWikiMsg('html2wiki-not-allowed');

@@ -30,9 +30,11 @@ ul.mw-ext-Html2Wiki a:hover {
 
 .mw-ext-Html2Wiki-loading {
     border: 1px solid #ccc;
-    width: 150px;
-    height: 100px;
-    background: url( http://upload.wikimedia.org/wikipedia/commons/d/de/Ajax-loader.gif ) no-repeat center center;
+    width: 50px;
+    height: 50px;
+    background: #f6f6f6;
     display: none;
-
+    position: absolute;
+    top:calc(50% - 50px/2); /* height divided by 2*/
+    left:calc(50% - 50px/2); /* width divided by 2*/
 }
