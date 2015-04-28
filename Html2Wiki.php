@@ -185,3 +185,43 @@ $wgLogActionsHandlers['html2wiki/*'] = 'LogFormatter';
 
 // Enable Foo
 #$wgHtml2WikiEnableFoo = true;
+
+/**
+ * Determine if an executable exists in the underlying environment
+ * Windows has a command 'where' that is similar to 'which'
+ * PHP_OS is currently WINNT for every Windows version supported by PHP
+ * So if we detect Windows we'll use 'where'
+ * Otherwise we'll assume a POSIX system and use 'command' which is 
+ * more reliable than trying to use 'which' for all other systems
+ *
+ * @param string $command The command to check
+ * @return bool true if the command has been found ; otherwise, false.
+ */
+function command_exists ($command) {
+  $exists = (PHP_OS == 'WINNT') ? 'where' : 'command -v';
+  $process = proc_open(
+    "$exists $command",
+    array(
+      0 => array("pipe", "r"), //STDIN
+      1 => array("pipe", "w"), //STDOUT
+      2 => array("pipe", "w"), //STDERR
+    ),
+    $pipes
+  );
+  if ($process !== false) {
+    $stdout = stream_get_contents($pipes[1]);
+    $stderr = stream_get_contents($pipes[2]);
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+    proc_close($process);
+    return $stdout != '';
+  }
+  return false;
+}
+
+// Test for the presence of pandoc which is required. 
+// Maybe use pandoc-php (https://github.com/ryakad/pandoc-php) in the future 
+// if we support more conversions
+if (!command_exists('pandoc')) {
+  die ("Html2Wiki requires pandoc.\n Either install pandoc or disable Html2Wiki.");    
+}
