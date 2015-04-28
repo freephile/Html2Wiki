@@ -779,29 +779,38 @@ HERE
         // Tidy now works on mContent even when in fallback mode for MediaWiki-Vagrant
         $this->tidyup(self::getTidyOpts());
         
-        $this->mContent = self::qpClean($this->mContent);
-        // qpCleanLinks is a stronger version of qpRemoveMouseOvers
-        //$this->qpCleanLinks();
-        // Remove mouseovers and onclick handlers in links
-        $this->qpRemoveMouseOvers();
-        // turn <a name="foo"></a> to <span name="foo"></span> for intradocument links
-        $this->mContent = self::qpLinkToSpan($this->mContent);
-        // fix up relative links
-        $this->qpNormalizeLinks('a:link');
-        $this->qpNormalizeLinks('img');
-        
-        // fix up the image links
-        $this->qpAlterImageLinks();
-        // cleanFile is actually good for both sets, and gets rid of scripts etc.
-        // but it's old and duplicates stuff that is already done by Tidy etc.
-        $this->cleanFile();
-        
-        
-        // example of using a static method that would be available without
-        // an Html2Wiki object (outside the class)
-        $this->mContent = self::qpItalics($this->mContent, 'span.cItalic' );
-        // functional version is commented out, but works just as well
-        // $this->qpItalics('span.cItalic');
+        // QueryPath is finicky because HTML is wild and untamed
+        try {
+            $this->mContent = self::qpClean($this->mContent);
+            // qpCleanLinks is a stronger version of qpRemoveMouseOvers
+            //$this->qpCleanLinks();
+            // Remove mouseovers and onclick handlers in links
+            $this->qpRemoveMouseOvers();
+            // turn <a name="foo"></a> to <span name="foo"></span> for intradocument links
+            $this->mContent = self::qpLinkToSpan($this->mContent);
+            // fix up relative links
+            $this->qpNormalizeLinks('a:link');
+            $this->qpNormalizeLinks('img');
+
+            // fix up the image links
+            $this->qpAlterImageLinks();
+            // cleanFile is actually good for both sets, and gets rid of scripts etc.
+            // but it's old and duplicates stuff that is already done by Tidy etc.
+            $this->cleanFile();
+
+
+            // example of using a static method that would be available without
+            // an Html2Wiki object (outside the class)
+            $this->mContent = self::qpItalics($this->mContent, 'span.cItalic' );
+            // functional version is commented out, but works just as well
+            // $this->qpItalics('span.cItalic');
+        } catch (Exception $e) {
+            $out = $this->getOutput();
+            $out->wrapWikiMsg(
+                "<p class=\"error\">\n$1\n</p>", array('html2wiki_uploaderror', $e->getMessage())
+            );
+            return false;
+        }
         // panDoc apparently lets double single quotes ''italics'' pass through
         // so we can qpItalics before running panDoc2Wiki()
         $this->panDoc2Wiki();
