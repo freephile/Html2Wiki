@@ -192,7 +192,7 @@ $wgLogActionsHandlers['html2wiki/*'] = 'LogFormatter';
  * more reliable than trying to use 'which' for all other systems
  *
  * @param string $command The command to check
- * @return bool true if the command has been found ; otherwise, false.
+ * @return the path to the command if the command has been found ; otherwise, false.
  */
 function command_exists ($command) {
   $exists = (PHP_OS == 'WINNT') ? 'where' : 'command -v';
@@ -211,7 +211,10 @@ function command_exists ($command) {
     fclose($pipes[1]);
     fclose($pipes[2]);
     proc_close($process);
-    return $stdout != '';
+    if ($stdout != '') {
+        return $stdout;
+    }
+    return false;
   }
   return false;
 }
@@ -221,14 +224,33 @@ function command_exists ($command) {
  * Html2Wiki will run properly
  */
 function checkEnvironment() {
-    $hasPandoc = command_exists('pandoc')? true : false;
-    $hasQueryPath = class_exists("QueryPath")? true : false;
-    $hasComposer = command_exists('composer')? true : false; 
+    global $tidy;
+    $hasPandoc = command_exists('pandoc');
+    $hasQueryPath = class_exists("QueryPath", true)? true : false;
+    $hasComposer = command_exists('composer');
+    $hasTidyModule = class_exists('Tidy', true)? true : false;
+    $tidyCmd = command_exists('tidy');
+
     $projectURL = "https://www.mediawiki.org/wiki/Extension:Html2Wiki";
     $cwd = __DIR__;
     
-    if ($hasPandoc && $hasQueryPath) {return true;}
+    if ($hasPandoc && $hasQueryPath && $hasTidyModule) {return true;}
 
+    if (!$hasTidyModule) {
+        if ($tidyCmd) {
+            // falling back to the binary Tidy
+            $tidy = $tidyCmd;
+        } else {
+            $msg = "Html2Wiki requires Tidy.\n\n";
+            if (version_compare(PHP_VERSION, '5.0.0', '<')) {
+                $msg .= "The Tidy extension for PHP is preferred and comes bundled with PHP 5.0+ but you are running an older version of PHP.  Html2Wiki has not been tested on old versions of PHP. You should upgrade PHP\n\n";
+            }
+            $msg .= "You can install the extension with something like sudo apt-get install php5-tidy\n\n";
+            $msg .= "Please see the installation instructions at $projectURL for more info.";
+            die(nl2br($msg));
+        }
+    }
+    
     // Test for the presence of pandoc which is required. 
     // Maybe use pandoc-php (https://github.com/ryakad/pandoc-php) in the future 
     // if we support more conversions
@@ -241,7 +263,7 @@ function checkEnvironment() {
 
     Please see the installation instructions at $projectURL for more info.
 HERE;
-        die ($msg);
+        die(nl2br($msg));
     }
 
     if (!$hasQueryPath) {
@@ -259,7 +281,7 @@ HERE;
 
     Then reload this page.
 HERE;
-            die ($msg);
+            die(nl2br($msg));
         } else {
             $msg = <<<HERE
     Html2Wiki requires the QueryPath library.
@@ -270,7 +292,7 @@ HERE;
 
     Please see the installation instructions at $projectURL for more info.
 HERE;
-            die ($msg);
+            die(nl2br($msg));
         }   
     }
     

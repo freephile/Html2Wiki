@@ -1086,6 +1086,7 @@ HERE
      * with no args, it should default to reading the config file
      */
     public function tidyup($tidyConfig = NULL) {
+        global $tidy;
         if ($this->mMimeType !== 'text/html') {
             // @todo wrap this in a wiki message
             echo "wrong type of file for Tidy\n";
@@ -1105,7 +1106,7 @@ HERE
                 // echo "Tidy's config not found, or not readable\n";
             }
         }
-        if (class_exists('Tidy')) {
+        if (class_exists('Tidy', true)) {
             $encoding = 'utf8';
             $tidy = new Tidy;
             $tidy->parseString($this->mContent, $tidyConfig, $encoding);
@@ -1128,16 +1129,15 @@ HERE
             // don't need this escaping since we're not using shell_exec
             // $html = str_replace(array('\\', '%'), array('\\\\', '%%'), $html);
             
-            $tidy = "/usr/bin/tidy";
             // only by passing the options as a long string worked.
             // also, $this->mTidyErrors will never populate unless we explicitly 
             // trap STDERR
             // 2>&1 1> /dev/null
-            $cmd = "$tidy -quiet -indent -ashtml $shellConfig";
-$tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-tags 1 --enclose-block-text 1 --enclose-text 1 --fix-backslash 1 --fix-bad-comments 1 --fix-uri 1 --hide-comments 1 --merge-divs 1 --merge-spans 1 --repeated-attributes keep-first --show-body-only 1 --show-errors 0 --show-warnings 0 --indent 0 --wrap 120 --tidy-mark 0 --write-back 0';
-            // $escaped_command = escapeshellcmd($cmd);
-            // echo "executing $escaped_command";
-            // $this->mContentTidy = $this->mContent = shell_exec("printf '$html' | $escaped_command");
+            $tidy = "$tidy -quiet -indent -ashtml $shellConfig";
+            /*
+            $tidy = "$tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-tags 1 --enclose-block-text 1 --enclose-text 1 --fix-backslash 1 --fix-bad-comments 1 --fix-uri 1 --hide-comments 1 --merge-divs 1 --merge-spans 1 --repeated-attributes keep-first --show-body-only 1 --show-errors 0 --show-warnings 0 --indent 0 --wrap 120 --tidy-mark 0 --write-back 0";
+             * 
+             */
             $descriptorspec = array(
                 0 => array("pipe", "r"), // stdin is a pipe that the child will read from
                 1 => array("pipe", "w"), // stdout is a pipe that the child will write to
