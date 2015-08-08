@@ -1208,7 +1208,14 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
      */
     public function qpNormalizeLinks ($selector) {
         global $wgH2WEliminateDuplicateImages;
-        $qp = htmlqp($this->mContent, $selector);
+        try {
+            $qp = htmlqp($this->mContent, $selector);
+        } catch (Exception $e) {
+            $out->wrapWikiMsg(
+                "<p class=\"error\">\n$1\n</p>", array('html2wiki_parse-error', $e->getMessage() . "\n " . $e->getTraceAsString())
+            );
+            return false;
+        }
         if ( $qp->length == 0 ) {
             return false;
         }
@@ -1353,7 +1360,14 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
      * 
      */
     public function qpAlterImageLinks ($removePathElement = null) {
-        $qp = htmlqp ($this->mContent, 'img');
+        try {
+            $qp = htmlqp ($this->mContent, 'img');
+        } catch (Exception $e) {
+            $out->wrapWikiMsg(
+                "<p class=\"error\">\n$1\n</p>", array('html2wiki_parse-error', $e->getMessage() . "\n " . $e->getTraceAsString())
+            );
+            return false;
+        }
         if ( $qp->length == 0 ) {
             return false;
         }
@@ -1382,7 +1396,14 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
      */
 
     public static function qpItalics($content, $selector = NULL, $options = array('ignore_parser_warnings'=> true) ) {
-        $qp = htmlqp($content, $selector, $options);
+        try {
+            $qp = htmlqp($content, $selector, $options);
+        } catch (Exception $e) {
+            $out->wrapWikiMsg(
+                "<p class=\"error\">\n$1\n</p>", array('html2wiki_parse-error', $e->getMessage() . "\n " . $e->getTraceAsString())
+            );
+            return false;
+        }
         $items = $qp->find($selector);
         if ( $items->length == 0 ) {
             return $content;
@@ -1436,7 +1457,14 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
           public 'length' => int 0
      */
     public static function qpClean($content) {
-        $qp = htmlqp($content);
+        try {
+            $qp = htmlqp($content);
+        } catch (Exception $e) {
+            $out->wrapWikiMsg(
+                "<p class=\"error\">\n$1\n</p>", array('html2wiki_parse-error', $e->getMessage() . "\n " . $e->getTraceAsString())
+            );
+            return false;
+        }
         $ea = $qp->top()->find('head');
         if ($ea->length) {
             foreach ($ea as $head) {
@@ -1461,7 +1489,14 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
      * @return string
      */
     public static function qpRemoveIds($content, $selector) {
-        $qp = htmlqp($content, $selector)->remove();
+        try {
+            $qp = htmlqp($content, $selector)->remove();
+        } catch (Exception $e) {
+            $out->wrapWikiMsg(
+                "<p class=\"error\">\n$1\n</p>", array('html2wiki_parse-error', $e->getMessage() . "\n " . $e->getTraceAsString())
+            );
+            return false;
+        }
         ob_start();
         $qp->writeHTML();
         $return = ob_get_clean();
@@ -1495,7 +1530,14 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
      */
     public function qpCleanLinks () {
         $options = array('ignore_parser_warnings'=> true);
-        $qp = htmlqp($this->mContent, null, $options);
+        try {
+            $qp = htmlqp($this->mContent, null, $options);
+        } catch (Exception $e) {
+            $out->wrapWikiMsg(
+                "<p class=\"error\">\n$1\n</p>", array('html2wiki_parse-error', $e->getMessage() . "\n " . $e->getTraceAsString())
+            );
+            return false;
+        }
         $anchors = $qp->find('a:link');
         if ( $anchors->length == 0 ) {
             return false;
@@ -1528,7 +1570,14 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
     }
     
     public static function qpLinkToSpan($content) {
-        $qp = htmlqp($content, 'a');
+        try {
+            $qp = htmlqp($content, 'a');
+        } catch (Exception $e) {
+            $out->wrapWikiMsg(
+                "<p class=\"error\">\n$1\n</p>", array('html2wiki_parse-error', $e->getMessage() . "\n " . $e->getTraceAsString())
+            );
+            return false;
+        }
         if ( $qp->length == 0 ) {
             return false;
         }
@@ -1563,7 +1612,14 @@ $tidy = '/usr/bin/tidy -quiet -indent -ashtml  --drop-empty-paras 1 --drop-font-
      */
     public function qpRemoveMouseOvers() {
         // $qp = htmlqp($this->mContent, 'body')->find("a:link");
-        $qp = htmlqp($this->mContent, 'a:link');
+        try {
+            $qp = htmlqp($this->mContent, 'a:link');
+        } catch (Exception $e) {
+            $out->wrapWikiMsg(
+                "<p class=\"error\">\n$1\n</p>", array('html2wiki_parse-error', $e->getMessage() . "\n " . $e->getTraceAsString())
+            );
+            return false;
+        }
         if ( $qp->length == 0 ) {
             return false;
         }
