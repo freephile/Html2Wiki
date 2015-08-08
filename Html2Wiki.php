@@ -135,9 +135,6 @@ $wgExtensionMessagesFiles['Html2WikiAlias'] = "$dir/Html2Wiki.i18n.alias.php";
 #$wgHooks['BeforePageDisplay'][] = 'Html2WikiHooks::onBeforePageDisplay';
 // Register special pages
 $wgSpecialPages['Html2Wiki'] = 'SpecialHtml2Wiki'; // the name of the subclass
-// Set the group for our Special Page(s)
-// deprecated but still works See getGroupName()
-// $wgSpecialPageGroups['Html2Wiki'] = 'media';
 // Register modules through the ResourceLoader
 $wgResourceModules['ext.Html2Wiki'] = array(
     'scripts' => array('modules/ext.Html2Wiki.js'),
