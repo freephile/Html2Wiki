@@ -216,9 +216,64 @@ function command_exists ($command) {
   return false;
 }
 
-// Test for the presence of pandoc which is required. 
-// Maybe use pandoc-php (https://github.com/ryakad/pandoc-php) in the future 
-// if we support more conversions
-if (!command_exists('pandoc')) {
-  die ("Html2Wiki requires pandoc.\n Either install pandoc or disable Html2Wiki.");    
+/**
+ * A function to test for the dependencies that need to be installed before 
+ * Html2Wiki will run properly
+ */
+function checkEnvironment() {
+    $hasPandoc = command_exists('pandoc')? true : false;
+    $hasQueryPath = class_exists("QueryPath")? true : false;
+    $hasComposer = command_exists('composer')? true : false; 
+    $projectURL = "https://www.mediawiki.org/wiki/Extension:Html2Wiki";
+    $cwd = __DIR__;
+    
+    if ($hasPandoc && $hasQueryPath) {return true;}
+
+    // Test for the presence of pandoc which is required. 
+    // Maybe use pandoc-php (https://github.com/ryakad/pandoc-php) in the future 
+    // if we support more conversions
+    if (!$hasPandoc) {
+        $msg = <<<HERE
+    Html2Wiki requires pandoc.
+
+    On Ubuntu systems this is as simple as 
+    sudo apt-get install pandoc
+
+    Please see the installation instructions at $projectURL for more info.
+HERE;
+        die ($msg);
+    }
+
+    if (!$hasQueryPath) {
+        if ($hasComposer) {
+            $msg = <<<HERE
+    Html2Wiki requires the QueryPath library.
+
+    It can be installed using the 'Composer' utility.  Composer will automatically
+    download and install the right version of QueryPath for you, placing it within
+    your Html2Wiki 'vendor' subdirectory and updating the autoloader.  You already 
+    have Composer, so all you need to do is enter these commands in your console:
+
+    cd $cwd ;
+    composer install
+
+    Then reload this page.
+HERE;
+            die ($msg);
+        } else {
+            $msg = <<<HERE
+    Html2Wiki requires the QueryPath library.
+
+    It is best to install QueryPath using the 'Composer' utility.  
+    (Composer will automatically download and install the right version of QueryPath 
+    for you, placing it within your Html2Wiki 'vendor' subdirectory and updating the autoloader.)
+
+    Please see the installation instructions at $projectURL for more info.
+HERE;
+            die ($msg);
+        }   
+    }
+    
 }
+// do the installation check
+checkEnvironment();
