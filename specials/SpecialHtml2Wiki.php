@@ -237,7 +237,7 @@ class SpecialHtml2Wiki extends SpecialPage {
         // mArticleSavePath does not contain the CollectionName; equals the value any intermediate path elements NOT including the file name
         // mArticleTitle will be the full value of mCollectionName (if any) plus mArticleSavePath plus the file name MINUS any extension
         $this->mCollectionName = (string) $request->getText('collection-name');
-        if (!empty($this->mCollectionName)) {
+        if ($this->mCollectionName) {
             // remove a leading slash because Collection Names must not start with a slash
             // and also 'save path' must be relative
             $this->mCollectionName = ltrim( $this->mCollectionName, '/' );
@@ -511,6 +511,7 @@ class SpecialHtml2Wiki extends SpecialPage {
             case 'application/x-gtar':
             case 'application/zip':
                 // @todo Do we disallow uploading a zip file without a collection name?
+                // empty just tests if a var is "falsey"
                 if( empty ($this->mCollectionName) ) {
                     // warn that you can't do that
                 }
@@ -1377,7 +1378,8 @@ HERE
                 $src = str_replace("$removePathElement/", '', $src);
             }
             $img->attr('src', $src);
-            if ( empty( $img->attr('title') ) ) {
+            // add in title attributes where they don't exist
+            if (!$img->attr('title'))  {
                 $title = str_replace('_', ' ', basename($src));
                 $img->attr('title', $title);
             }
@@ -1727,7 +1729,7 @@ HERE
      * @return type
      */
     public function makeTempFile ($content) {
-        if( !empty($this->mDataDir) ) {
+        if ($this->mDataDir) {
             $stage = realpath($this->mDataDir);
         } else {
             $stage = sys_get_temp_dir();
