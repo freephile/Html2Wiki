@@ -148,7 +148,6 @@ $wgResourceModules['ext.Html2Wiki'] = array(
         "html2wiki-desc",
         "html2wiki-fieldset-legend",
         "html2wiki-filename",
-        "html2wiki-i18n-welcome",
         "html2wiki-intro",
         "html2wiki-log-description",
         "html2wiki-log-name",

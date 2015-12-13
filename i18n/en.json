@@ -11,7 +11,6 @@
 	"html2wiki-dry-run": "Dry run:",
 	"html2wiki-dry-run-heading": "Preview only! Contents below were not saved:",
 	"html2wiki-summary": "Description appearing on top of [[Special:Html2Wiki]] - but it's not.",
-	"html2wiki-i18n-welcome": "Welcome to the localization file of the Html2Wiki extension.",
 	"html2wiki-importbtn": "Import",
 	"html2wiki-intro": "Use this form to import HTML content into your wiki.\n\nIf you upload a zip file, the Collection Name field is used to differentiate the collection from a later version. Also all files will be grouped in a category by the same name. For example, let's say you're importing a collection of HTML files output from your software documentation system, you would enter a unique Collection ID like 'FluxCapacitor-v1.1' so that the whole collection is imported into an article hierarchy starting with 'FluxCapacitor-v1.1'. This way 10 different collections can be imported without clobbering each other.\n\nSpecifying an existing Collection Name (or parent path) will update existing wiki content.\n\nIf you want to import a single file into an existing article hierarchy, simply specify it's 'parent' as the Collection Name.\n\nFor example, if importing a new 'advanced_topics.html' that should exist at <code>'FluxCapacitor-v1.1/docs/advanced_topics.html'</code>, the parent would be 'FluxCapacitor-v1.1/docs/'",
 	"html2wiki-title": "Import HTML",

@@ -4,6 +4,5 @@
 			"Greg Rundlett"
 		]
 	},
-	"html2wiki-desc": "Esta extensión le permite importar HTML en su wiki . Se basa en el servicio Parsoid",
-	"html2wiki-i18n-welcome": "Bienvenido al archivo de localización de la extensión de Html2Wiki."
+	"html2wiki-desc": "Esta extensión le permite importar HTML en su wiki . Se basa en el servicio Parsoid"
 }
