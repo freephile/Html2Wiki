@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"Chrumps"
+		]
+	},
+	"html2wiki_filenotfound": "Nie odnaleziono pliku ($1)",
+	"html2wiki-filename": "Nazwa pliku:"
+}
