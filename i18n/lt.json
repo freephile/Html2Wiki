@@ -1,0 +1,12 @@
+{
+	"@metadata": {
+		"authors": [
+			"Zygimantus"
+		]
+	},
+	"html2wiki-dry-run": "Sausas paleidimas:",
+	"html2wiki-importbtn": "Importuoti",
+	"html2wiki-title": "Importuoti HTML",
+	"html2wiki-filename": "Failo pavadinimas:",
+	"html2wiki-log-name": "HTML importo žurnalas"
+}

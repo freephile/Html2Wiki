@@ -1,0 +1,10 @@
+{
+	"@metadata": {
+		"authors": [
+			"Vitorvicentevalente"
+		]
+	},
+	"html2wiki-importbtn": "Importar",
+	"html2wiki_filenotfound": "Ficheiro ($1) não encontrado",
+	"logentry-html2wiki": "$1 {{GENDER:$2|importou}} a página $3"
+}

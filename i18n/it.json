@@ -1,0 +1,17 @@
+{
+	"@metadata": {
+		"authors": [
+			"Beta16"
+		]
+	},
+	"html2wiki": "Importa contenuto HTML",
+	"html2wiki-comment": "File importato da [https://www.mediawiki.org/wiki/Extension:Html2Wiki Html2Wiki]",
+	"html2wiki-desc": "Importa contenuto HTML nel tuo wiki",
+	"html2wiki-importbtn": "Importa",
+	"html2wiki-title": "Importa HTML",
+	"html2wiki-fieldset-legend": "Importa contenuto HTML",
+	"html2wiki_filenotfound": "File ($1) non trovato",
+	"html2wiki-filename": "Nome file:",
+	"html2wiki-log-name": "Importazioni HTML",
+	"logentry-html2wiki": "$1 {{GENDER:$2|ha importato}} la pagina $3"
+}
