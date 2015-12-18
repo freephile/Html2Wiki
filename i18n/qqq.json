@@ -2,7 +2,8 @@
 	"@metadata": {
 		"authors": [
 			"freephile",
-			"Umherirrender"
+			"Umherirrender",
+			"Robby"
 		]
 	},
 	"html2wiki": "The name of the extension's entry in Special:SpecialPages",
@@ -12,13 +13,13 @@
 	"html2wiki-dry-run": "Form label for checkbox to preview the results instead of saving",
 	"html2wiki-dry-run-heading": "Heading for the actual display of 'dry-run' results",
 	"html2wiki-summary": "Description appearing on top of [[Special:Html2Wiki]].",
-	"html2wiki-importbtn": "The submit button",
+	"html2wiki-importbtn": "The submit button\n{{Identical|Import}}",
 	"html2wiki-intro": "more content at the top of [[Special:Html2Wiki]].",
 	"html2wiki-title": "The page title for [[Special:Html2Wiki]]",
 	"html2wiki-fieldset-legend": "The legend of the primary fieldset in Special:Html2Wiki",
 	"html2wiki_filenotfound": "File ($1) not found",
 	"html2wiki-text": "Instructions on how to import HTML",
-	"html2wiki-filename": "The label for the file input element",
+	"html2wiki-filename": "The label for the file input element\n{{Identical|Filename}}",
 	"html2wiki-not-allowed": "An error message for users without permission to import HTML",
 	"html2wiki-log-name": "for the Special:Log log name that appears in the drop-down on the Special:Log page",
 	"html2wiki-log-description": "for the Special:Log description that appears on the Special:Log page when you filter logs on this specific log name",

@@ -1,0 +1,25 @@
+{
+	"@metadata": {
+		"authors": [
+			"Purodha"
+		]
+	},
+	"html2wiki": "<i lang=\"en\" xml:lang=\"en\" dir=\"ltr\" title=\"HyperText Markup Language\">HTML</i>-Ennhallde empottehre",
+	"html2wiki-comment": "Dattei emmpottehrt övver [https://www.mediawiki.org/wiki/Extension:Html2Wiki Html2Wiki]",
+	"html2wiki-desc": "Emmpottehr <i lang=\"en\" xml:lang=\"en\" dir=\"ltr\" title=\"HyperText Markup Language\">HTML</i>-Ennhallde en et Wikki",
+	"html2wiki-dry-run": "Blohß ußprobehre:",
+	"html2wiki-dry-run-heading": "Vör_Aanseesch! De aanjezeijschte Dahte sin nit faßjehallde.",
+	"html2wiki-importbtn": "Lohß Jonn!",
+	"html2wiki-title": "<i lang=\"en\" xml:lang=\"en\" dir=\"ltr\" title=\"HyperText Markup Language\">HTML</i>-Ennhallde empottehre",
+	"html2wiki-fieldset-legend": "<i lang=\"en\" xml:lang=\"en\" dir=\"ltr\" title=\"HyperText Markup Language\">HTML</i>-Ennhallde empottehre",
+	"html2wiki_filenotfound": "Di Dattei „$1“ ham_mer nit jefonge.",
+	"html2wiki-text": "Einzel <i lang=\"en\" xml:lang=\"en\" dir=\"ltr\" title=\"HyperText Markup Language\">HTML</i> Datteije (<code lang=\"en\" xml:lang=\"en\" dir=\"ltr\" title=\"HyperText Markup Language\">.html</code>) un Achihf-Datteije (<code lang=\"en\" xml:lang=\"en\" dir=\"ltr\" title=\"GNU ZIP - GNU's Not Unix! - ZIP es „Riißverschloß“\">.gz</code>, <code lang=\"en\" xml:lang=\"en\" dir=\"ltr\" title=\"tape archive\">.tar</code>, <code lang=\"en\" xml:lang=\"en\" dir=\"ltr\" title=\"tape archive + GNU ZIP - GNU's Not Unix! - ZIP es „Riißverschloß“\">.tar.gz</code>, <code lang=\"en\" xml:lang=\"en\" dir=\"ltr\" title=\"tape archive + GNU ZIP - GNU's Not Unix! - ZIP es „Riißverschloß“\">.tgz</code> udder <code lang=\"en\" xml:lang=\"en\" dir=\"ltr\" title=\"ZIP es „Riißverschloß“\"\">.zip</code>) sin müjjelesch heh. Bellder wähde uß da Aschihve automattesch övvernumme.",
+	"html2wiki-filename": "Dä Dattei iere Nahme:",
+	"html2wiki-not-allowed": "Meer moss ene Wikki_Köhbes sin udder et Rääsch zom Emmpottehe han, öm heh di Sigg nöze ze künne.",
+	"html2wiki-log-name": "Et Logbohch vum <i lang=\"en\" xml:lang=\"en\" dir=\"ltr\" title=\"HyperText Markup Language\">HTML</i>_Empozzehre",
+	"html2wiki-log-description": "Heh sin de Sigge oppjeleß, di köözlesch als <i lang=\"en\" xml:lang=\"en\" dir=\"ltr\" title=\"HyperText Markup Language\">HTML</i> empozzehrt woodte.",
+	"html2wiki_multiple_body": "Mer han mih wi eine <code lang=\"en\" xml:lang=\"en\" dir=\"ltr\">&lt;body&gt;</code>-Befähl en $1 jefonge.",
+	"html2wiki_uploaderror": "Ene Fähler es opjetrodde beim Beärbeijde vun dä huhjelahde Dattei:\n$1",
+	"html2wiki_parse-error": "<i lang=\"en\" xml:lang=\"en\" dir=\"ltr\" title=\"„Frohre-Padd“\">QueryPath</i> kunnt dä aanjelivverte Ennhald bei $1 nit paase.",
+	"logentry-html2wiki": "{{GENDER:$2|Dä|Dat|Dä Metmaacher|De|Dat}} $1 hät di Sigg „$3“ empottehrt."
+}

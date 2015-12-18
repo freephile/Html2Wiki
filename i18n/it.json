@@ -5,13 +5,23 @@
 		]
 	},
 	"html2wiki": "Importa contenuto HTML",
+	"html2wiki-collection-name": "Nome della collezione; o percorso superiore:",
 	"html2wiki-comment": "File importato da [https://www.mediawiki.org/wiki/Extension:Html2Wiki Html2Wiki]",
 	"html2wiki-desc": "Importa contenuto HTML nel tuo wiki",
+	"html2wiki-dry-run": "Simulazione:",
+	"html2wiki-dry-run-heading": "Solo anteprima! I contenuti di seguito non sono stati salvati:",
+	"html2wiki-summary": "Descrizione che appare sulla parte superiore di [[Special:Html2Wiki]] - ma non lo è.",
 	"html2wiki-importbtn": "Importa",
 	"html2wiki-title": "Importa HTML",
 	"html2wiki-fieldset-legend": "Importa contenuto HTML",
 	"html2wiki_filenotfound": "File ($1) non trovato",
+	"html2wiki-text": "Sono supportati file HTML individuali (.html) e file di archivio. Archivi possono essere .gz, .tar, .tar.gz, .tgz o .zip. Le immagini saranno gestite automaticamente dal file di archivio.",
 	"html2wiki-filename": "Nome file:",
+	"html2wiki-not-allowed": "Spiacenti, devi essere un amministratore, o disporre dei privilegi di importazione per utilizzare questo modulo.",
 	"html2wiki-log-name": "Importazioni HTML",
+	"html2wiki-log-description": "Di seguito sono elencate le importazioni HTML più recenti",
+	"html2wiki_multiple_body": "Trovati più di una coppia di tag <body> in \n$1",
+	"html2wiki_uploaderror": "Si è verificato un errore nella gestione del caricamento del file:\n$1",
+	"html2wiki_parse-error": "QueryPath (http://querypath.org/) non è in grado di analizzare  il contenuto fornito a $1",
 	"logentry-html2wiki": "$1 {{GENDER:$2|ha importato}} la pagina $3"
 }

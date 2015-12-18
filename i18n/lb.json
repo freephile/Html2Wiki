@@ -1,0 +1,18 @@
+{
+	"@metadata": {
+		"authors": [
+			"Robby"
+		]
+	},
+	"html2wiki": "HTML-Inhalt importéieren",
+	"html2wiki-desc": "Importéiert HTML-Inhalt an Är Wiki",
+	"html2wiki-dry-run": "Ausprobéieren:",
+	"html2wiki-dry-run-heading": "Kucken ouni ze späicheren! Den Inhalt hei drënner ass net gespäichert:",
+	"html2wiki-importbtn": "Importéieren",
+	"html2wiki-title": "HTML importéieren",
+	"html2wiki-fieldset-legend": "HTML-Inhalt importéieren",
+	"html2wiki_filenotfound": "Fichier ($1) net fonnt",
+	"html2wiki-filename": "Numm vum Fichier:",
+	"html2wiki-not-allowed": "Pardon, fir dëse Formulaire ze benotze musst Dir Administrateur sinn oder Import-Rechter hunn.",
+	"logentry-html2wiki": "$1 {{GENDER:$2|huet}} d'Säit $3 importéiert"
+}
