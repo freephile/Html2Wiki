@@ -12,15 +12,17 @@
 	"html2wiki-dry-run-heading": "以下只是预览！内容尚未保存：",
 	"html2wiki-summary": "出现于[[Special:Html2Wiki]]上的描述 - 但它不是。",
 	"html2wiki-importbtn": "导入",
+	"html2wiki-intro": "使用此表单以将HTML内容导入至您的wiki。\n\n如果您上传一个zip文件，收藏名称字段可被用于区分来自早期版本的收藏。Also all files will be grouped in a category by the same name. For example, let's say you're importing a collection of HTML files output from your software documentation system, you would enter a unique Collection ID like 'FluxCapacitor-v1.1' so that the whole collection is imported into an article hierarchy starting with 'FluxCapacitor-v1.1'. This way 10 different collections can be imported without clobbering each other.\n\nSpecifying an existing Collection Name (or parent path) will update existing wiki content.\n\nIf you want to import a single file into an existing article hierarchy, simply specify it's 'parent' as the Collection Name.\n\nFor example, if importing a new 'advanced_topics.html' that should exist at <code>'FluxCapacitor-v1.1/docs/advanced_topics.html'</code>, the parent would be 'FluxCapacitor-v1.1/docs/'",
 	"html2wiki-title": "导入HTML",
 	"html2wiki-fieldset-legend": "导入HTML内容",
 	"html2wiki_filenotfound": "找不到文件（$1）。",
+	"html2wiki-text": "单一HTML（.html）和归档文件一样受支持。档案可能是.gz、.tar、.tar.gz、.tgz或.zip格式。图片会从归档文件中自动处理。",
 	"html2wiki-filename": "文件名：",
 	"html2wiki-not-allowed": "对不起，您必须是管理员，或具有导入特权才能使用此表格。",
 	"html2wiki-log-name": "HTML导入日志",
 	"html2wiki-log-description": "下面是最近HTML导入的列表",
 	"html2wiki_multiple_body": "在$1中找到多余一组<body>标签",
 	"html2wiki_uploaderror": "处理文件上传时出错：\n$1",
-	"html2wiki_parse-error": "QueryPath（http://querypath.org/）无法解析提供在$1的内容",
+	"html2wiki_parse-error": "QueryPath (http://querypath.org/) 无法解析提供在$1的内容",
 	"logentry-html2wiki": "$1{{GENDER:$2|导入了}}页面$3"
 }
