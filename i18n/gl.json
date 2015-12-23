@@ -1,0 +1,27 @@
+{
+	"@metadata": {
+		"authors": [
+			"Elisardojm"
+		]
+	},
+	"html2wiki": "Importar o contido HTML",
+	"html2wiki-collection-name": "Nome da colección; ou ruta pai:",
+	"html2wiki-comment": "Ficheiro importado con [https://www.mediawiki.org/wiki/Extension:Html2Wiki Html2Wiki]",
+	"html2wiki-desc": "Importar un contido HTML na súa wiki",
+	"html2wiki-dry-run": "Simular:",
+	"html2wiki-dry-run-heading": "Só é unha vista previa! O contido mostrado abaixo non se gardou:",
+	"html2wiki-summary": "A descrición aparece arriba de [[Special:Html2Wiki]], pero non é así.",
+	"html2wiki-importbtn": "Importar",
+	"html2wiki-title": "Importar HTML",
+	"html2wiki-fieldset-legend": "Importar o contido HTML",
+	"html2wiki_filenotfound": "Ficheiro ($1) non atopado",
+	"html2wiki-text": "Admítense tanto HTML (.html) individuais como comprimidos. Estes poden ser .gz, .tar, .tar.gz, .tgz ou .zip. As imaxes trataranse automaticamente desde os comprimidos.",
+	"html2wiki-filename": "Nome do ficheiro:",
+	"html2wiki-not-allowed": "Sentímolo, debe ser un administrador ou ter permisos de importación para usar este formulario.",
+	"html2wiki-log-name": "Rexistro de importación de HTML",
+	"html2wiki-log-description": "Abaixo móstrase unha lista das importacións de HTML máis recentes.",
+	"html2wiki_multiple_body": "Atopáronse máis dun par de etiquetas <body> en $1",
+	"html2wiki_uploaderror": "Houbo un erro ó xestionar a suba do ficheiro:\n$1",
+	"html2wiki_parse-error": "QueryPath (http://querypath.org/) non puido analizar o contido subministrado en $1",
+	"logentry-html2wiki": "$1 {{GENDER:$2|importou}} a páxina $3"
+}

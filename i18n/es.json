@@ -1,8 +1,28 @@
 {
 	"@metadata": {
 		"authors": [
-			"Greg Rundlett"
+			"Greg Rundlett",
+			"Macofe"
 		]
 	},
-	"html2wiki-desc": "Esta extensión le permite importar HTML en su wiki . Se basa en el servicio Parsoid"
+	"html2wiki": "Importación de contenido HTML",
+	"html2wiki-collection-name": "Nombre de la colección; o ruta padre:",
+	"html2wiki-comment": "Archivo importado con [https://www.mediawiki.org/wiki/Extension:Html2Wiki Html2Wiki]",
+	"html2wiki-desc": "Importación de contenido HTML en tu wiki",
+	"html2wiki-dry-run": "Simular:",
+	"html2wiki-dry-run-heading": "¡Solo es una vista previa! El contenido a continuación no se guardó:",
+	"html2wiki-summary": "La descripción aparece arriba de [[Special:Html2Wiki]], pero no es así.",
+	"html2wiki-importbtn": "Importar",
+	"html2wiki-title": "Importación de HTML",
+	"html2wiki-fieldset-legend": "Importación de contenido HTML",
+	"html2wiki_filenotfound": "No se encuentra el archivo ($1)",
+	"html2wiki-text": "Se admiten tanto HTML (.html) individuales como archivadores. Estos pueden ser .gz, .tar, .tar.gz, .tgz o .zip. Las imágenes se manejarán automáticamente desde archivadores.",
+	"html2wiki-filename": "Nombre de archivo:",
+	"html2wiki-not-allowed": "Debes ser un administrador o tener permisos de importación para usar este formulario.",
+	"html2wiki-log-name": "Registro de importación de HTML",
+	"html2wiki-log-description": "A continuación se muestra una lista de las importaciones de HTML más recientes.",
+	"html2wiki_multiple_body": "Se encontraron más de un par de etiquetas <body> en \n$1",
+	"html2wiki_uploaderror": "Había un error al manejar la subida del archivo:\n$1",
+	"html2wiki_parse-error": "QueryPath (http://querypath.org/) no pudo analizar el contenido suministrado en $1",
+	"logentry-html2wiki": "$1 {{GENDER:$2|importó}} la página $3"
 }
