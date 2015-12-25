@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"Milicevic01"
+		]
+	},
+	"html2wiki-importbtn": "Увези",
+	"logentry-html2wiki": "$1 је {{GENDER:$2|увезао|увезла}} страницу $3"
+}
