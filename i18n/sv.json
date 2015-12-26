@@ -1,0 +1,12 @@
+{
+	"@metadata": {
+		"authors": [
+			"WikiPhoenix"
+		]
+	},
+	"html2wiki": "Importera HTML-innehåll",
+	"html2wiki-fieldset-legend": "Importera HTML-innehåll",
+	"html2wiki_filenotfound": "Filen ($1) hittades inte",
+	"html2wiki-filename": "Filnamn:",
+	"logentry-html2wiki": "$1 {{GENDER:$2|importerade}} sidan $3"
+}
