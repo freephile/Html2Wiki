@@ -1,0 +1,10 @@
+{
+	"@metadata": {
+		"authors": [
+			"V.narsikar"
+		]
+	},
+	"html2wiki-importbtn": "आयात करा",
+	"html2wiki_filenotfound": "संचिका ($1) सापडली नाही",
+	"html2wiki-filename": "संचिकानाम:"
+}
