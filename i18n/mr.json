@@ -4,7 +4,15 @@
 			"V.narsikar"
 		]
 	},
+	"html2wiki": "एचटीएमएल आशय आयात करा",
+	"html2wiki-comment": "संचिका [https://www.mediawiki.org/wiki/Extension:Html2Wiki Html2Wiki] द्वारे आयात केली",
+	"html2wiki-dry-run": "सुकी चाल:",
+	"html2wiki-dry-run-heading": "फक्त झलक! खालील आशय जतन केल्या गेला नाही:",
 	"html2wiki-importbtn": "आयात करा",
+	"html2wiki-title": "एचटीएमएल आयात करा",
+	"html2wiki-fieldset-legend": "एचटीएमएल आशय आयात करा",
 	"html2wiki_filenotfound": "संचिका ($1) सापडली नाही",
-	"html2wiki-filename": "संचिकानाम:"
+	"html2wiki-filename": "संचिकानाम:",
+	"html2wiki-log-name": "एचटीएमएल आयात नोंदी",
+	"html2wiki-log-description": "खाली अगदी नुकतेच आयात केलेल्या एचटीएमएल ची यादी आहे"
 }
