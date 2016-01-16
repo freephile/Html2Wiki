@@ -162,8 +162,9 @@ class SpecialHtml2Wiki extends SpecialPage {
     public $uploadFormTextTop;
     public $uploadFormTextAfterSummary;
 
-    
-    
+    public function doesWrites() {
+        return true;
+    }
     
     /**
      * Shows the page to the user.
