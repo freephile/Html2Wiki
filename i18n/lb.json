@@ -15,5 +15,6 @@
 	"html2wiki_filenotfound": "Fichier ($1) net fonnt",
 	"html2wiki-filename": "Numm vum Fichier:",
 	"html2wiki-not-allowed": "Pardon, fir dëse Formulaire ze benotze musst Dir Administrateur sinn oder Import-Rechter hunn.",
+	"html2wiki_uploaderror": "Et gouf e Feeler beim Verschaffe vum eropgeluedene Fichier: $1",
 	"logentry-html2wiki": "$1 {{GENDER:$2|huet}} d'Säit $3 importéiert"
 }

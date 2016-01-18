@@ -1,0 +1,17 @@
+{
+	"@metadata": {
+		"authors": [
+			"Sjoerddebruin"
+		]
+	},
+	"html2wiki": "HTML-inhoud importeren",
+	"html2wiki-desc": "HTML-inhoud importeren naar uw wiki",
+	"html2wiki-importbtn": "Importeren",
+	"html2wiki-title": "HTML importeren",
+	"html2wiki-fieldset-legend": "HTML-inhoud importeren",
+	"html2wiki_filenotfound": "Bestand ($1) niet gevonden",
+	"html2wiki-filename": "Bestandsnaam:",
+	"html2wiki-not-allowed": "Sorry, u moet een moderator zijn of beschikken over importeer-rechten om dit formulier te gebruiken.",
+	"html2wiki_uploaderror": "Er is een fout opgetreden bij het verwerken van de bestandsupload:\n$1",
+	"logentry-html2wiki": "$1 heeft de pagina $3 {{GENDER:$2|geïmporteerd}}"
+}
