@@ -4,7 +4,11 @@
 			"Vitorvicentevalente"
 		]
 	},
+	"html2wiki-desc": "Importa conteúdo HTML para a sua wiki",
 	"html2wiki-importbtn": "Importar",
+	"html2wiki-title": "Importação de HTML",
 	"html2wiki_filenotfound": "Ficheiro ($1) não encontrado",
+	"html2wiki-filename": "Nome do ficheiro:",
+	"html2wiki-log-name": "Registo de importação de HTML",
 	"logentry-html2wiki": "$1 {{GENDER:$2|importou}} a página $3"
 }
