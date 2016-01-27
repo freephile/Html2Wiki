@@ -9,7 +9,7 @@
 	"html2wiki-comment": "File importato da [https://www.mediawiki.org/wiki/Extension:Html2Wiki Html2Wiki]",
 	"html2wiki-desc": "Importa contenuto HTML nel tuo wiki",
 	"html2wiki-dry-run": "Simulazione:",
-	"html2wiki-dry-run-heading": "Solo anteprima! I contenuti di seguito non sono stati salvati:",
+	"html2wiki-dry-run-heading": "Solo anteprima! I contenuti non sono stati salvati:",
 	"html2wiki-summary": "Descrizione che appare sulla parte superiore di [[Special:Html2Wiki]] - ma non lo è.",
 	"html2wiki-importbtn": "Importa",
 	"html2wiki-title": "Importa HTML",

@@ -10,7 +10,7 @@
 	"html2wiki-comment": "由[https://www.mediawiki.org/wiki/Extension:Html2Wiki Html2Wiki]导入的文件",
 	"html2wiki-desc": "导入HTML内容至您的wiki",
 	"html2wiki-dry-run": "空运行：",
-	"html2wiki-dry-run-heading": "仅为预览！以下内容尚未保存：",
+	"html2wiki-dry-run-heading": "仅为预览！内容尚未保存：",
 	"html2wiki-summary": "出现于[[Special:Html2Wiki]]上的描述 - 但它不是。",
 	"html2wiki-importbtn": "导入",
 	"html2wiki-intro": "使用此表单以将HTML内容导入至您的wiki。\n\n如果您上传一个zip文件，收藏名称字段可被用于区分来自早期版本的收藏。另外所有文件将分组在同一名称分类中。例如，假设您正在导入一批输出自您的软件文档系统的HTML文件，您将输入一个收藏ID“FluxCapacitor-v1.1”，这样整个收藏被导入进一个条目层级，从“FluxCapacitor-v1.1”开始。这样10个不同收藏可被导入，而不会相互冲突。\n\n指定一个现有的收藏名称（或父路径）将更新现有的wiki内容。\n\n如果您希望导入一个文件至现有条目层级，可直接指定它的“parent”为收藏名称。\n\n例如，如果导入一个新的“advanced_topics.html”，那么它应该存在于<code>'FluxCapacitor-v1.1/docs/advanced_topics.html'</code>，父目录应为“FluxCapacitor-v1.1/docs/”",
