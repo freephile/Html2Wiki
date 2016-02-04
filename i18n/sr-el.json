@@ -1,0 +1,10 @@
+{
+	"@metadata": {
+		"authors": [
+			"Milicevic01"
+		]
+	},
+	"html2wiki-importbtn": "Uvezi",
+	"html2wiki-filename": "Naziv datoteke:",
+	"logentry-html2wiki": "$1 je {{GENDER:$2|uvezao|uvezla}} stranicu $3"
+}
