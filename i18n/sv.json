@@ -5,6 +5,7 @@
 		]
 	},
 	"html2wiki": "Importera HTML-innehåll",
+	"html2wiki-dry-run-heading": "Endast förhandsgranskning! Innehållet har inte sparats:",
 	"html2wiki-fieldset-legend": "Importera HTML-innehåll",
 	"html2wiki_filenotfound": "Filen ($1) hittades inte",
 	"html2wiki-filename": "Filnamn:",
