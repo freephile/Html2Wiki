@@ -10,7 +10,7 @@
 	"html2wiki-comment": "Archivo importado con [https://www.mediawiki.org/wiki/Extension:Html2Wiki Html2Wiki]",
 	"html2wiki-desc": "Importación de contenido HTML en tu wiki",
 	"html2wiki-dry-run": "Simular:",
-	"html2wiki-dry-run-heading": "¡Solo es una vista previa! El contenido a continuación no se guardó:",
+	"html2wiki-dry-run-heading": "¡Solo es una vista previa! El contenido no se guardó:",
 	"html2wiki-summary": "La descripción aparece arriba de [[Special:Html2Wiki]], pero no es así.",
 	"html2wiki-importbtn": "Importar",
 	"html2wiki-title": "Importación de HTML",
