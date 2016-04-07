@@ -4,7 +4,14 @@
 			"Bjankuloski06"
 		]
 	},
+	"html2wiki": "Увоз на HTML-содржина",
+	"html2wiki-collection-name": "Име на збирката; или матична патека:",
+	"html2wiki-comment": "Податотеката е увезена со [https://www.mediawiki.org/wiki/Extension:Html2Wiki Html2Wiki]",
+	"html2wiki-desc": "Увоз на HTML-содржина во вашето вики",
 	"html2wiki-dry-run": "На суво:",
+	"html2wiki-dry-run-heading": "Ова е само преглед! Содржината не е зачувана:",
+	"html2wiki-summary": "Опис што треба да стои најгоре во [[Special:Html2Wiki]], но не стои.",
+	"html2wiki-importbtn": "Увези",
 	"html2wiki-title": "Увоз на XML",
 	"html2wiki-fieldset-legend": "Увоз на HTML-содржина",
 	"html2wiki_filenotfound": "Податотеката ($1) не е пронајдена",
