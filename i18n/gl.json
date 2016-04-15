@@ -12,6 +12,7 @@
 	"html2wiki-dry-run-heading": "Só é unha vista previa! O contido non se gardou:",
 	"html2wiki-summary": "A descrición aparece arriba de [[Special:Html2Wiki]], pero non é así.",
 	"html2wiki-importbtn": "Importar",
+	"html2wiki-intro": "Use este formulario para importar contido HTML na súa wiki.\n\nSe sube un ficheiro zip, o campo de nome colección úsase para diferenciar a colección dunha versión posterior. Tamén todos os ficheiros agruparanse nunha categoría co mesmo nome. Por exemplo, digamos que está a importar unha colección de ficheiros HTML de saída do seu sistema de documentación software, vostede indicará un identificador único de colección como 'FluxCapacitor-v1.1' co que toda a colección impórtase nunha xerarquía de artigos comezando con 'FluxCapacitor-v1.1'. Desta forma dez coleccións diferentes poden importarse sen machacarse as unhas ás outras.\n\nEspecificando un nome de colección xa existente (ou camiño ó pai), actualizará o contido wiki existente.\n\nSe quere importar un ficheiro único nunha xerarquía de artigos existente, simplemente especifique o seu 'pai' como o nome da colección.\n\nPor exemplo, se quere importar un novo 'advanced_topics.html' que debería existir en <code>'FluxCapacitor-v1.1/docs/advanced_topics.html'</code>, o pai debería ser 'FluxCapacitor-v1.1/docs/'",
 	"html2wiki-title": "Importar HTML",
 	"html2wiki-fieldset-legend": "Importar o contido HTML",
 	"html2wiki_filenotfound": "Ficheiro ($1) non atopado",
