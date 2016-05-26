@@ -10,6 +10,7 @@
 	"html2wiki-desc": "Emmpottehr <i lang=\"en\" xml:lang=\"en\" dir=\"ltr\" title=\"HyperText Markup Language\">HTML</i>-Ennhallde en et Wikki",
 	"html2wiki-dry-run": "Blohß ußprobehre:",
 	"html2wiki-dry-run-heading": "Vör_Aanseesch! De aanjezeijschte Dahte sin nit faßjehallde.",
+	"html2wiki-summary": "Description appearing on top of [[Special:Html2Wiki]] - es ävver nit.<!-- https://phabricator.wikimedia.org/T136288  -->",
 	"html2wiki-importbtn": "Lohß Jonn!",
 	"html2wiki-title": "<i lang=\"en\" xml:lang=\"en\" dir=\"ltr\" title=\"HyperText Markup Language\">HTML</i>-Ennhallde empottehre",
 	"html2wiki-fieldset-legend": "<i lang=\"en\" xml:lang=\"en\" dir=\"ltr\" title=\"HyperText Markup Language\">HTML</i>-Ennhallde empottehre",
