@@ -16,5 +16,9 @@
 	"html2wiki-fieldset-legend": "Увоз на HTML-содржина",
 	"html2wiki_filenotfound": "Податотеката ($1) не е пронајдена",
 	"html2wiki-filename": "Податотека:",
+	"html2wiki-log-name": "Дневник на HTML-увоз",
+	"html2wiki-log-description": "Подолу е наведен список на најновите HTML-увезувања",
+	"html2wiki_multiple_body": "Најдов повеќе од еден пар ознаки <body> во \n$1",
+	"html2wiki_uploaderror": "Се појави грешка при подигањето на податотеката:\n$1",
 	"logentry-html2wiki": "$1 {{GENDER:$2|ја увезе}} страницата $3"
 }
