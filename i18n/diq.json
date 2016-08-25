@@ -1,0 +1,14 @@
+{
+	"@metadata": {
+		"authors": [
+			"Kumkumuk"
+		]
+	},
+	"html2wiki": "Zerrekê HTML azere dı",
+	"html2wiki-comment": "Dosya [https://www.mediawiki.org/wiki/Extension:Html2Wiki Html2Wiki] ra debyê",
+	"html2wiki-importbtn": "Azare de",
+	"html2wiki-title": "HTML azere kı",
+	"html2wiki-fieldset-legend": "Zerrekê HTML azere dı",
+	"html2wiki_filenotfound": "Dosyay $1 çıni ya",
+	"html2wiki-filename": "Namey dosya:"
+}
