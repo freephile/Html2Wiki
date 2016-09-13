@@ -1374,7 +1374,9 @@ HERE
             return false;
         }
         foreach ($qp as $img) {
-            $src = $img->attr('src');
+            # preserve the collection name as part of the image path
+            $src = ($this->mCollectionName)? "{$this->mCollectionName}/{$img->attr('src')}" : $img->attr('src');
+            # which could also be explicitly removed if you want to 'flatten' your images
             if ( !is_null($removePathElement) ) {
                 $src = str_replace("$removePathElement/", '', $src);
             }
