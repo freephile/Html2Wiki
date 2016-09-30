@@ -938,7 +938,6 @@ HERE
         $enableWrite = true; // This is set to false by default, in the ApiMain constructor
         $api = new ApiMain($params, $enableWrite);
         $api->execute();
-        $data = &$api->getResultData();
     }
 
     /**
