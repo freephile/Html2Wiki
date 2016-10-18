@@ -5,6 +5,8 @@
 		]
 	},
 	"html2wiki-importbtn": "Importuj",
+	"html2wiki-title": "Import HTML",
+	"html2wiki-fieldset-legend": "Import treści HTML",
 	"html2wiki_filenotfound": "Nie odnaleziono pliku ($1)",
 	"html2wiki-filename": "Nazwa pliku:"
 }
