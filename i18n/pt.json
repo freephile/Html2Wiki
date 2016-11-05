@@ -19,7 +19,7 @@
 	"html2wiki_filenotfound": "Ficheiro ($1) não encontrado",
 	"html2wiki-text": "São suportados ficheiros individuais HTML (.html) e Arquivos. Os arquivos podem ser .gz, .tar, .tar.gz, .tgz ou .zip. As imagens dentro dos ficheiros de arquivo serão tratadas automaticamente.",
 	"html2wiki-filename": "Nome do ficheiro:",
-	"html2wiki-not-allowed": "Desculpe, para usar este formulário tem de ser administrador(a) ou ter privilégios de importação.",
+	"html2wiki-not-allowed": "Desculpe, para usar este formulário tem de ser administrador(a) ou ter permissões de importação.",
 	"html2wiki-log-name": "Registo de importação de HTML",
 	"html2wiki-log-description": "É apresentada abaixo uma lista das importações recentes de HTML",
 	"html2wiki_multiple_body": "Foi encontrado mais do que um conjunto de elementos <body> em $1",
