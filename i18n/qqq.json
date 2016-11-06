@@ -4,7 +4,8 @@
 			"freephile",
 			"Umherirrender",
 			"Robby",
-			"Hamilton Abreu"
+			"Hamilton Abreu",
+			"Nemo bis"
 		]
 	},
 	"html2wiki": "The name of the extension's entry in Special:SpecialPages",
@@ -13,7 +14,7 @@
 	"html2wiki-desc": "{{desc}}",
 	"html2wiki-dry-run": "Form label for checkbox to preview the results instead of saving",
 	"html2wiki-dry-run-heading": "Heading for the actual display of 'dry-run' results",
-	"html2wiki-summary": "Description appearing on top of [[Special:Html2Wiki]].\n\nRelated discussion: [[Thread:Support/About MediaWiki:Html2wiki-summary/en]]",
+	"html2wiki-summary": "Description appearing on top of [[Special:Html2Wiki]].",
 	"html2wiki-importbtn": "The submit button\n{{Identical|Import}}",
 	"html2wiki-intro": "more content at the top of [[Special:Html2Wiki]].",
 	"html2wiki-title": "The page title for [[Special:Html2Wiki]]",
