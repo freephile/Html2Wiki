@@ -10,7 +10,7 @@
 	"html2wiki-desc": "Importa contenuto HTML nel tuo wiki",
 	"html2wiki-dry-run": "Simulazione:",
 	"html2wiki-dry-run-heading": "Solo anteprima! I contenuti non sono stati salvati:",
-	"html2wiki-summary": "Descrizione che appare sulla parte superiore di [[Special:Html2Wiki]] - ma non lo è.",
+	"html2wiki-summary": "Importa pagine HTML nel wiki",
 	"html2wiki-importbtn": "Importa",
 	"html2wiki-title": "Importa HTML",
 	"html2wiki-fieldset-legend": "Importa contenuto HTML",
