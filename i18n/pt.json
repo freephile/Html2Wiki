@@ -11,7 +11,7 @@
 	"html2wiki-desc": "Importa conteúdo HTML para a sua wiki",
 	"html2wiki-dry-run": "Antevisão:",
 	"html2wiki-dry-run-heading": "Mera antevisão! O conteúdo não foi gravado:",
-	"html2wiki-summary": "Descrição que aparece no topo de [[Special:Html2Wiki]] - mas não está lá.",
+	"html2wiki-summary": "Importar páginas HTML para a wiki",
 	"html2wiki-importbtn": "Importar",
 	"html2wiki-intro": "Use este formulário para importar conteúdo HTML para a sua wiki.\n\nSe carregar um ficheiro zip, o campo Nome do Conjunto é usado para diferenciar esse conjunto de outras versões posteriores do mesmo. Todos os ficheiros dentro do zip serão agrupados numa categoria com esse nome. Por exemplo, digamos que está a importar um conjunto de ficheiros HTML produzidos pelo seu sistema de documentação de software. Deve introduzir um identificador único como  'CondensadorDeFluxoDeLorean-v1.1' para que todo o conjunto seja importado para uma hierarquia de artigos que começa por 'CondensadorDeFluxoDeLorean-v1.1'. Desta forma, 10 conjuntos diferentes podem ser importados sem que interfiram uns com os outros.\n\nEspecificar um Nome do Conjunto (ou caminho de uma hierarquia) que já exista, atualiza esse conjunto já existente.\n\nSe pretende importar um único ficheiro para dentro de uma hierarquia de artigos existente, introduza simplesmente o nome dessa hierarquia no Nome do Conjunto.\n\nPor exemplo, ao importar uma nova versão de 'tópicos_avançados.html' que deverá ser colocada em <code>'CondensadorDeFluxoDeLorean-v1.1/docs/tópicos_avançados.html'</code>, a hierarquia deve ser 'CondensadorDeFluxoDeLorean-v1.1/docs/'",
 	"html2wiki-title": "Importação de HTML",
