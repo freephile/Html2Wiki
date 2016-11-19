@@ -1,10 +1,12 @@
 {
 	"@metadata": {
 		"authors": [
-			"Zygimantus"
+			"Zygimantus",
+			"Eitvys200"
 		]
 	},
 	"html2wiki-dry-run": "Sausas paleidimas:",
+	"html2wiki-summary": "Importuoti HTML puslapius į viki",
 	"html2wiki-importbtn": "Importuoti",
 	"html2wiki-title": "Importuoti HTML",
 	"html2wiki-filename": "Failo pavadinimas:",
