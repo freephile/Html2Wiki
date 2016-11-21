@@ -2,7 +2,8 @@
 	"@metadata": {
 		"authors": [
 			"Greg Rundlett",
-			"Macofe"
+			"Macofe",
+			"Fitoschido"
 		]
 	},
 	"html2wiki": "Importación de contenido HTML",
@@ -11,7 +12,7 @@
 	"html2wiki-desc": "Importación de contenido HTML en tu wiki",
 	"html2wiki-dry-run": "Simular:",
 	"html2wiki-dry-run-heading": "¡Solo es una vista previa! El contenido no se guardó:",
-	"html2wiki-summary": "La descripción aparece arriba de [[Special:Html2Wiki]], pero no es así.",
+	"html2wiki-summary": "Importar páginas HTML en el wiki",
 	"html2wiki-importbtn": "Importar",
 	"html2wiki-title": "Importación de HTML",
 	"html2wiki-fieldset-legend": "Importación de contenido HTML",
