@@ -10,7 +10,7 @@
 	"html2wiki-desc": "Увоз на HTML-содржина во вашето вики",
 	"html2wiki-dry-run": "На суво:",
 	"html2wiki-dry-run-heading": "Ова е само преглед! Содржината не е зачувана:",
-	"html2wiki-summary": "Опис што треба да стои најгоре во [[Special:Html2Wiki]], но не стои.",
+	"html2wiki-summary": "Увоз на HTML-страници во викито",
 	"html2wiki-importbtn": "Увези",
 	"html2wiki-title": "Увоз на XML",
 	"html2wiki-fieldset-legend": "Увоз на HTML-содржина",
