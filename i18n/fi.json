@@ -1,0 +1,9 @@
+{
+	"@metadata": {
+		"authors": [
+			"Pyscowicz"
+		]
+	},
+	"html2wiki_filenotfound": "Tiedostoa ($1) ei löytynyt.",
+	"html2wiki-filename": "Tiedostonimi:"
+}
