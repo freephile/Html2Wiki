@@ -1,5 +1,5 @@
 {
-    "require": {
-        "querypath/QueryPath": "> 3.0.0"
-    }
+	"require": {
+		"querypath/QueryPath": "> 3.0.0"
+	}
 }
