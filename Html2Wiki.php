@@ -2,7 +2,7 @@
 /**
  * Html2Wiki extension - enables you to import HTML content into your wiki.
  *
- * @link http://mediawiki.org/wiki/Extension:Html2Wiki For more info 
+ * @link http://mediawiki.org/wiki/Extension:Html2Wiki For more info
  * (when available)
  *
  * @file
@@ -12,7 +12,7 @@
  *
  * This file is part of the Html2Wiki Extension to MediaWiki
  * @link https://www.mediawiki.org/wiki/Extension:Html2Wiki
- * 
+ *
  *
  * @section LICENSE
  * This program is free software; you can redistribute it and/or modify
@@ -38,7 +38,7 @@ if ( function_exists( 'wfLoadExtension' ) ) {
 	wfLoadExtension( 'Html2Wiki' );
 	// Keep i18n globals so mergeMessageFileList.php doesn't break
 	$wgMessagesDirs['Html2Wiki'] = __DIR__ . '/i18n';
-	$wgExtensionMessagesFiles['Html2WikiAlias'] = __DIR__ .'/Html2Wiki.i18n.alias.php';
+	$wgExtensionMessagesFiles['Html2WikiAlias'] = __DIR__ . '/Html2Wiki.i18n.alias.php';
 	wfWarn(
 		'Deprecated PHP entry point used for the Html2Wiki extension. ' .
 		'Please use wfLoadExtension instead, ' .
@@ -49,12 +49,3 @@ if ( function_exists( 'wfLoadExtension' ) ) {
     // don't die.  Maintain some backward compatibility
     // die( 'This version of the Html2Wiki extension requires MediaWiki 1.25+' );
 }
-
-
-
-
-
-
-
-
-
