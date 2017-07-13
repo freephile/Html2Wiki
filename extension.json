@@ -1,0 +1,103 @@
+{
+	"name": "Html2Wiki",
+	"version": "2017.07",
+	"author": [
+		"Greg Rundlett"
+	],
+	"url": "https://www.mediawiki.org/wiki/Extension:Html2Wiki",
+	"descriptionmsg": "html2wiki-desc",
+	"license-name": "GPL-2.0+",
+	"type": "other",
+	"SpecialPages": {
+		"Html2Wiki": "SpecialHtml2Wiki"
+	},
+	"LogTypes": [
+		"html2wiki"
+	],
+	"LogNames": {
+		"html2wiki": "html2wiki-log-name"
+	},
+	"LogHeaders": {
+		"html2wiki": "html2wiki-log-description"
+	},
+	"LogActionsHandlers": {
+		"html2wiki/*": "LogFormatter"
+	},
+	"MessagesDirs": {
+		"Html2Wiki": [
+			"i18n"
+		]
+	},
+	"ExtensionMessagesFiles": {
+		"Html2WikiAlias": "Html2Wiki.i18n.alias.php"
+	},
+	"AutoloadClasses": {
+		"Html2WikiHooks": "Html2Wiki.hooks.php",
+		"SpecialHtml2Wiki": "specials/SpecialHtml2Wiki.php"
+	},
+	"ResourceModules": {
+		"ext.Html2Wiki": {
+			"scripts": [
+				"modules/ext.Html2Wiki.js"
+			],
+			"styles": [
+				"modules/ext.Html2Wiki.css"
+			],
+			"messages": [
+				"html2wiki",
+				"html2wiki-desc",
+				"html2wiki-fieldset-legend",
+				"html2wiki-filename",
+				"html2wiki-intro",
+				"html2wiki-log-description",
+				"html2wiki-log-name",
+				"html2wiki-not-allowed",
+				"html2wiki-summary",
+				"html2wiki-text",
+				"html2wiki-title",
+				"html2wiki_uploaderror"
+			],
+			"dependencies": [],
+			"position": "bottom"
+		}
+	},
+	"ResourceFileModulePaths": {
+		"localBasePath": "",
+		"remoteExtPath": "Html2Wiki/"
+	},
+	"config": {
+		"H2WEliminateDuplicateImages": false,
+		"H2WProcessImages": true,
+		"NamespacesWithSubpages": {
+			"0": true,
+			"1": true,
+			"2": true,
+			"3": true,
+			"4": true,
+			"5": true,
+			"6": true,
+			"7": true,
+			"8": 0,
+			"9": true,
+			"10": true,
+			"11": true,
+			"12": true,
+			"13": true,
+			"14": true,
+			"15": true,
+			"100": true,
+			"101": true,
+			"828": true,
+			"829": true,
+			"103": true,
+			"105": true,
+			"109": true
+		}
+	},
+	"load_composer_autoloader": true,
+	"manifest_version": 1,
+	"callback": "Html2Wiki::checkEnvironment",
+	"requires": {
+            "MediaWiki": ">= 1.19.0"
+        }
+}

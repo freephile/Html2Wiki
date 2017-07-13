@@ -328,7 +328,136 @@ class SpecialHtml2Wiki extends SpecialPage {
         parent::__construct($name);
         // we might want to add rights here, or else do it in a method called in exectute
         //parent::__construct('Import Html', array('upload', 'reupload');
+
+        /** I don't think this is necessary with the new registration system **/
+        if (file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
+            require_once __DIR__ . '/vendor/autoload.php';
+        }
+        /**/
     }
+    
+    /**
+    * A function to test for the dependencies that need to be installed before 
+    * Html2Wiki will run properly
+    */
+    protected static function checkEnvironment() {
+        global $wgNamespacesWithSubpages;
+            if ( $wgNamespacesWithSubpages[NS_MAIN] !== true ) {
+                die("This extension requires \$wgNamespacesWithSubpages set to TRUE in the MAIN namespace.  
+                Please add \n
+                \$wgNamespacesWithSubpages[NS_MAIN] = true;\n to your LocalSettings.php");
+            }
+        global $tidy;
+        $hasPandoc = self::command_exists('pandoc');
+        $hasQueryPath = class_exists("QueryPath", true)? true : false;
+        $hasComposer = self::command_exists('composer');
+        $hasTidyModule = class_exists('Tidy', true)? true : false;
+        $tidyCmd = self::command_exists('tidy');
+
+        $projectURL = "https://www.mediawiki.org/wiki/Extension:Html2Wiki";
+        $cwd = __DIR__;
+        
+        if ($hasPandoc && $hasQueryPath && $hasTidyModule) {return true;}
+
+        if (!$hasTidyModule) {
+            if ($tidyCmd) {
+                // falling back to the binary Tidy
+                $tidy = $tidyCmd;
+            } else {
+                $msg = "Html2Wiki requires Tidy.\n\n";
+                if (version_compare(PHP_VERSION, '5.0.0', '<')) {
+                    $msg .= "The Tidy extension for PHP is preferred and comes bundled with PHP 5.0+ but you are running an older version of PHP.  Html2Wiki has not been tested on old versions of PHP. You should upgrade PHP\n\n";
+                }
+                $msg .= "You can install the extension with something like sudo apt-get install php5-tidy\n\n";
+                $msg .= "Please see the installation instructions at $projectURL for more info.";
+                die(nl2br($msg));
+            }
+        }
+        
+        // Test for the presence of pandoc which is required. 
+        // Maybe use pandoc-php (https://github.com/ryakad/pandoc-php) in the future 
+        // if we support more conversions
+        if (!$hasPandoc) {
+            $msg = <<<HERE
+        Html2Wiki requires pandoc.
+
+        On Ubuntu systems this is as simple as 
+        sudo apt-get install pandoc
+
+        Please see the installation instructions at $projectURL for more info.
+HERE;
+            die(nl2br($msg));
+        }
+
+        if (!$hasQueryPath) {
+            if ($hasComposer) {
+                $msg = <<<HERE
+        Html2Wiki requires the QueryPath library.
+
+        It can be installed using the 'Composer' utility.  Composer will automatically
+        download and install the right version of QueryPath for you, placing it within
+        your Html2Wiki 'vendor' subdirectory and updating the autoloader.  You already 
+        have Composer, so all you need to do is enter these commands in your console:
+
+        cd $cwd ;
+        composer install
+
+        Then reload this page.
+HERE;
+                die(nl2br($msg));
+            } else {
+                $msg = <<<HERE
+        Html2Wiki requires the QueryPath library.
+
+        It is best to install QueryPath using the 'Composer' utility.  
+        (Composer will automatically download and install the right version of QueryPath 
+        for you, placing it within your Html2Wiki 'vendor' subdirectory and updating the autoloader.)
+
+        Please see the installation instructions at $projectURL for more info.
+HERE;
+                die(nl2br($msg));
+            }   
+        }
+        
+    }
+
+    /**
+    * Determine if an executable exists in the underlying environment
+    * Windows has a command 'where' that is similar to 'which'
+    * PHP_OS is currently WINNT for every Windows version supported by PHP
+    * So if we detect Windows we'll use 'where'
+    * Otherwise we'll assume a POSIX system and use 'command' which is 
+    * more reliable than trying to use 'which' for all other systems
+    *
+    * @param string $command The command to check
+    * @return the path to the command if the command has been found ; otherwise, false.
+    */
+    public function command_exists ($command) {
+        $exists = (PHP_OS == 'WINNT') ? 'where' : 'command -v';
+        $process = proc_open(
+            "$exists $command",
+            array(
+            0 => array("pipe", "r"), //STDIN
+            1 => array("pipe", "w"), //STDOUT
+            2 => array("pipe", "w"), //STDERR
+            ),
+            $pipes
+        );
+        if ($process !== false) {
+            $stdout = stream_get_contents($pipes[1]);
+            $stderr = stream_get_contents($pipes[2]);
+            fclose($pipes[1]);
+            fclose($pipes[2]);
+            proc_close($process);
+            if ($stdout != '') {
+                return $stdout;
+            }
+            return false;
+        }
+        return false;
+    }
+    
+    
 
     /**
      * Override the parent to set where the special page appears on Special:SpecialPages
