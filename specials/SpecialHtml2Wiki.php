@@ -340,7 +340,7 @@ class SpecialHtml2Wiki extends SpecialPage {
     * A function to test for the dependencies that need to be installed before
     * Html2Wiki will run properly
     */
-    protected static function checkEnvironment() {
+    static function checkEnvironment() {
         global $wgNamespacesWithSubpages;
             if ( $wgNamespacesWithSubpages[NS_MAIN] !== true ) {
                 die( "This extension requires \$wgNamespacesWithSubpages set to TRUE in the MAIN namespace.
@@ -432,7 +432,7 @@ HERE;
     * @param string $command The command to check
     * @return the path to the command if the command has been found ; otherwise, false.
     */
-    public function command_exists ( $command ) {
+    public static function command_exists ( $command ) {
         $exists = ( PHP_OS == 'WINNT' ) ? 'where' : 'command -v';
         $process = proc_open(
             "$exists $command",
